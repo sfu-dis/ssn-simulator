@@ -1,0 +1,22 @@
+{
+  class Client class 1 ;
+  begin 104.847 ;
+  read 200 2 ;
+  write 300 1 ;
+  end 301.951 ;
+}
+{
+  class Client class 1 ;
+  begin 100.623 ;
+  write 250 2 ;
+  end 260 ;
+}
+{
+  class Client class 1 ;
+  begin 96.596 ;
+  read 102.012 1 ;
+  read 270.189 2 ;
+  write 300.949 3 ;
+  end 350.1 ;
+}
+

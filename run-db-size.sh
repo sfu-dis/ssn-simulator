@@ -10,10 +10,10 @@ models[${#models[*]}]="pg_ssi2 --run-name=SSI"
 models[${#models[*]}]="ssi4 --run-name=SSN+SI"
 models[${#models[*]}]="ssi4 --run-name=SSN+RC --si-relax-reads=2 --si-relax-writes=yes"
 
-# for reproducing the RC+SSN trace:
-#models[${#models[*]}]="ssi4 --run-name=SSN+RC --si-relax-reads=2 --si-relax-writes=yes --replay-file=cycle-trace --verbose=True"
+# For reproducing the RC+SSN trace with a cycle (Figure 4d in the paper):
+#models[${#models[*]}]="ssi4 --run-name=SSN+RC --si-relax-reads=2 --si-relax-writes=yes --replay-file=rc-cycle-trace --verbose=True"
 
 globals="--duration=20000 --nclients=30"
-#globals="--duration=2000" # for reproducing the RC+SSN trace
+#globals="--duration=2000" # for reproducing the RC+SSN cycle trace
 
 ./run.sh db-size $xpoints -- db-model "${models[@]}" -- $globals
