@@ -208,6 +208,7 @@ def make_db(tracker, stats, db_size, tid_watch, rid_watch, read_only_opt,
                 r1 = not safe_snapper.get_snap(pid) and si_relax_reads == 1
                 #e('r1=%d r2=%d pid=%d cxmin=%d snap=%d', r1, r2, pid, cxmin, snap) 
                 #if (r2 and pid == xmin) or cxmin < snap:
+                # Return the latest committed for RC (r2=true)
                 if (r2) or cxmin < snap:
                     if r1 and pid != xmin and xmax:
                         # check for and avoid fatal anti-dep
@@ -784,6 +785,7 @@ def test_ssi3_db():
         yield from tx_n(db, 0,   (C, X, 200), (B, X, 300))
         yield from test_fini(db)
 
+    # Reproduces the scenario in Figure 4d of the paper
     def testrc(db):
         yield from tx_n(db, 0, (1, R, 100), (0, X, 400))
         yield from tx_n(db, 0, (1, X, 200))
