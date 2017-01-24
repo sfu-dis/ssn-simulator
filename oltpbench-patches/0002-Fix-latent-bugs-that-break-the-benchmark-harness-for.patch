@@ -1,0 +1,54 @@
+From 9dabf7213413c49cb3a39097a9fcb6c93f52d41f Mon Sep 17 00:00:00 2001
+From: Ryan Johnson <ryan.johnson@cs.utoronto.ca>
+Date: Tue, 25 Mar 2014 08:34:01 -0400
+Subject: [PATCH 02/15] Fix latent bugs that break the benchmark harness for
+ pgsql
+
+---
+ src/com/oltpbenchmark/util/ResultUploader.java |    2 +-
+ src/com/oltpbenchmark/util/SQLUtil.java        |    6 +++---
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/src/com/oltpbenchmark/util/ResultUploader.java b/src/com/oltpbenchmark/util/ResultUploader.java
+index e177719..b279766 100644
+--- a/src/com/oltpbenchmark/util/ResultUploader.java
++++ b/src/com/oltpbenchmark/util/ResultUploader.java
+@@ -63,7 +63,7 @@ public class ResultUploader {
+         username = expConf.getString("username");
+         password = expConf.getString("password");
+         benchType = argsLine.getOptionValue("b");
+-        windowSize = Integer.parseInt(argsLine.getOptionValue("s"));
++        windowSize = Integer.parseInt(argsLine.getOptionValue("s", "1"));
+         uploadCode = expConf.getString("uploadCode");
+         uploadUrl = expConf.getString("uploadUrl");
+     }
+diff --git a/src/com/oltpbenchmark/util/SQLUtil.java b/src/com/oltpbenchmark/util/SQLUtil.java
+index 5354d7f..d1c31f3 100644
+--- a/src/com/oltpbenchmark/util/SQLUtil.java
++++ b/src/com/oltpbenchmark/util/SQLUtil.java
+@@ -325,7 +325,7 @@ public abstract class SQLUtil {
+      * @return
+      */
+     public static String getInsertSQL(Table catalog_tbl, boolean escape_names, int...exclude_columns) {
+-        return getInsertSQL(catalog_tbl, false, false, 1, exclude_columns);
++        return getInsertSQL(catalog_tbl, false, escape_names, 1, exclude_columns);
+     }
+     
+     /**
+@@ -336,11 +336,11 @@ public abstract class SQLUtil {
+      * @return
+      */
+     public static String getInsertSQL(Table catalog_tbl, int batchSize, int...exclude_columns) {
+-        return getInsertSQL(catalog_tbl, false, true, batchSize, exclude_columns);
++        return getInsertSQL(catalog_tbl, false, false, batchSize, exclude_columns);
+     }
+     
+     public static String getInsertSQL(Table catalog_tbl, boolean show_cols, int batchSize, int...exclude_columns) {
+-        return getInsertSQL(catalog_tbl, false, true, batchSize, exclude_columns);
++        return getInsertSQL(catalog_tbl, false, false, batchSize, exclude_columns);
+     }
+     
+     public static String getInsertSQL(Table catalog_tbl, boolean show_cols, boolean escape_names, int batchSize, int...exclude_columns) {
+-- 
+1.7.9.5
+

@@ -1,0 +1,500 @@
+From 68542ffc8a5a60207df5a31e25d10a2813229377 Mon Sep 17 00:00:00 2001
+From: Ryan Johnson <ryan.johnson@cs.utoronto.ca>
+Date: Wed, 19 Mar 2014 18:59:31 -0400
+Subject: [PATCH 06/15] Cahill: omit the storage of historical data, as it has
+ little bearing on concurrency control
+
+---
+ .../benchmarks/tpcc_plus/TPCCConstants.java        |    1 -
+ .../benchmarks/tpcc_plus/TPCCLoader.java           |   60 +-------------------
+ .../benchmarks/tpcc_plus/pojo/History.java         |   44 --------------
+ .../benchmarks/tpcc_plus/procedures/Payment.java   |   22 -------
+ .../benchmarks/tpcc_plus/tpcc-db2-ddl.sql          |   12 ----
+ .../benchmarks/tpcc_plus/tpcc-ddl.sql              |   13 -----
+ .../benchmarks/tpcc_plus/tpcc-mysql-ddl.sql        |   17 +-----
+ .../benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql        |   14 -----
+ .../benchmarks/tpcc_plus/tpcc-oracle-ddl.sql       |   12 ----
+ .../benchmarks/tpcc_plus/tpcc-pg-ddl.sql           |   15 +----
+ .../benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql    |   14 +----
+ 11 files changed, 6 insertions(+), 218 deletions(-)
+ delete mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/History.java
+
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCConstants.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCConstants.java
+index 468e46c..5a8d186 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCConstants.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCConstants.java
+@@ -6,7 +6,6 @@ public abstract class TPCCConstants {
+     public static final String TABLENAME_ITEM = "ITEM";
+     public static final String TABLENAME_STOCK = "STOCK";
+     public static final String TABLENAME_CUSTOMER = "CUSTOMER";
+-    public static final String TABLENAME_HISTORY = "HISTORY";
+     public static final String TABLENAME_OPENORDER = "OORDER";
+     public static final String TABLENAME_ORDERLINE = "ORDER_LINE";
+     public static final String TABLENAME_NEWORDER = "NEW_ORDER";
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java
+index 3327579..34f176c 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java
+@@ -56,7 +56,6 @@ import com.oltpbenchmark.api.Loader;
+ import com.oltpbenchmark.benchmarks.tpcc_plus.jdbc.jdbcIO;
+ import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.Customer;
+ import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.District;
+-import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.History;
+ import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.Item;
+ import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.NewOrder;
+ import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.Oorder;
+@@ -623,12 +622,9 @@ public class TPCCLoader extends Loader{
+ 		int t = 0;
+ 
+ 		Customer customer = new Customer();
+-		History history = new History();
+-		PrintWriter outHist = null;
+ 
+ 		try {
+ 		    PreparedStatement custPrepStmt = getInsertStatement(TPCCConstants.TABLENAME_CUSTOMER);
+-		    PreparedStatement histPrepStmt = getInsertStatement(TPCCConstants.TABLENAME_HISTORY);
+ 
+ 			now = new java.util.Date();
+ 
+@@ -637,15 +633,11 @@ public class TPCCLoader extends Loader{
+ 						+ "customer.csv"));
+ 				LOG.debug("\nWriting Customer file to: "
+ 						+ fileLocation + "customer.csv");
+-				outHist = new PrintWriter(new FileOutputStream(fileLocation
+-						+ "cust-hist.csv"));
+-				LOG.debug("\nWriting Customer History file to: "
+-						+ fileLocation + "cust-hist.csv");
+ 			}
+ 
+ 			t = (whseKount * distWhseKount * custDistKount * 2);
+-			LOG.debug("\nStart Cust-Hist Load for " + t
+-					+ " Cust-Hists @ " + now + " ...");
++			LOG.debug("\nStart Cust Load for " + t
++					+ " Cust @ " + now + " ...");
+ 
+ 			for (int w = 1; w <= whseKount; w++) {
+ 
+@@ -701,16 +693,6 @@ public class TPCCLoader extends Loader{
+ 						customer.c_data = TPCCUtil.randomStr(TPCCUtil
+ 								.randomNumber(300, 500, gen));
+ 
+-						history.h_c_id = c;
+-						history.h_c_d_id = d;
+-						history.h_c_w_id = w;
+-						history.h_d_id = d;
+-						history.h_w_id = w;
+-						history.h_date = sysdate;
+-						history.h_amount = 10;
+-						history.h_data = TPCCUtil.randomStr(TPCCUtil
+-								.randomNumber(10, 24, gen));
+-
+ 						k = k + 2;
+ 						if (outputFiles == false) {
+ 							custPrepStmt.setLong(1, customer.c_w_id);
+@@ -738,18 +720,6 @@ public class TPCCLoader extends Loader{
+ 
+ 							custPrepStmt.addBatch();
+ 
+-							histPrepStmt.setInt(1, history.h_c_id);
+-							histPrepStmt.setInt(2, history.h_c_d_id);
+-							histPrepStmt.setInt(3, history.h_c_w_id);
+-
+-							histPrepStmt.setInt(4, history.h_d_id);
+-							histPrepStmt.setInt(5, history.h_w_id);
+-							histPrepStmt.setTimestamp(6, history.h_date);
+-							histPrepStmt.setDouble(7, history.h_amount);
+-							histPrepStmt.setString(8, history.h_data);
+-
+-							histPrepStmt.addBatch();
+-
+ 							if ((k % configCommitCount) == 0) {
+ 								long tmpTime = new java.util.Date().getTime();
+ 								String etStr = "  Elasped Time(ms): "
+@@ -760,7 +730,6 @@ public class TPCCLoader extends Loader{
+ 								lastTimeMS = tmpTime;
+ 
+ 								custPrepStmt.executeBatch();
+-								histPrepStmt.executeBatch();
+ 								custPrepStmt.clearBatch();
+ 								custPrepStmt.clearBatch();
+ 								transCommit();
+@@ -787,17 +756,6 @@ public class TPCCLoader extends Loader{
+ 							str = str + customer.c_phone;
+ 							out.println(str);
+ 
+-							str = "";
+-							str = str + history.h_c_id + ",";
+-							str = str + history.h_c_d_id + ",";
+-							str = str + history.h_c_w_id + ",";
+-							str = str + history.h_d_id + ",";
+-							str = str + history.h_w_id + ",";
+-							str = str + history.h_date + ",";
+-							str = str + history.h_amount + ",";
+-							str = str + history.h_data;
+-							outHist.println(str);
+-
+ 							if ((k % configCommitCount) == 0) {
+ 								long tmpTime = new java.util.Date().getTime();
+ 								String etStr = "  Elasped Time(ms): "
+@@ -824,28 +782,17 @@ public class TPCCLoader extends Loader{
+ 					+ " of " + t);
+ 			lastTimeMS = tmpTime;
+ 			custPrepStmt.executeBatch();
+-			histPrepStmt.executeBatch();
+ 			custPrepStmt.clearBatch();
+-			histPrepStmt.clearBatch();
+ 			transCommit();
+ 			now = new java.util.Date();
+-			if (outputFiles == true) {
+-				outHist.close();
+-			}
+-			LOG.debug("End Cust-Hist Data Load @  " + now);
++			LOG.debug("End Cust Data Load @  " + now);
+ 
+ 		} catch (SQLException se) {
+ 			LOG.debug(se.getMessage());
+ 			transRollback();
+-			if (outputFiles == true) {
+-				outHist.close();
+-			}
+ 		} catch (Exception e) {
+ 			e.printStackTrace();
+ 			transRollback();
+-			if (outputFiles == true) {
+-				outHist.close();
+-			}
+ 		}
+ 
+ 		return (k);
+@@ -1087,7 +1034,6 @@ public class TPCCLoader extends Loader{
+ 			truncateTable(TPCCConstants.TABLENAME_STOCK);
+ 			truncateTable(TPCCConstants.TABLENAME_DISTRICT);
+ 			truncateTable(TPCCConstants.TABLENAME_CUSTOMER);
+-			truncateTable(TPCCConstants.TABLENAME_HISTORY);
+ 			truncateTable(TPCCConstants.TABLENAME_OPENORDER);
+ 			truncateTable(TPCCConstants.TABLENAME_ORDERLINE);
+ 			truncateTable(TPCCConstants.TABLENAME_NEWORDER);
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/History.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/History.java
+deleted file mode 100644
+index 9bcb461..0000000
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/History.java
++++ /dev/null
+@@ -1,44 +0,0 @@
+-/*******************************************************************************
+- * oltpbenchmark.com
+- *  
+- *  Project Info:  http://oltpbenchmark.com
+- *  Project Members:  	Carlo Curino <carlo.curino@gmail.com>
+- * 				Evan Jones <ej@evanjones.ca>
+- * 				DIFALLAH Djellel Eddine <djelleleddine.difallah@unifr.ch>
+- * 				Andy Pavlo <pavlo@cs.brown.edu>
+- * 				CUDRE-MAUROUX Philippe <philippe.cudre-mauroux@unifr.ch>  
+- *  				Yang Zhang <yaaang@gmail.com> 
+- * 
+- *  This library is free software; you can redistribute it and/or modify it under the terms
+- *  of the GNU General Public License as published by the Free Software Foundation;
+- *  either version 3.0 of the License, or (at your option) any later version.
+- * 
+- *  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+- *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+- *  See the GNU Lesser General Public License for more details.
+- ******************************************************************************/
+-package com.oltpbenchmark.benchmarks.tpcc.pojo;
+-
+-import java.sql.Timestamp;
+-
+-public class History {
+-
+-	public int h_c_id;
+-	public int h_c_d_id;
+-	public int h_c_w_id;
+-	public int h_d_id;
+-	public int h_w_id;
+-	public Timestamp h_date;
+-	public float h_amount;
+-	public String h_data;
+-
+-	@Override
+-	public String toString() {
+-		return ("\n***************** History ********************"
+-				+ "\n*   h_c_id = " + h_c_id + "\n* h_c_d_id = " + h_c_d_id
+-				+ "\n* h_c_w_id = " + h_c_w_id + "\n*   h_d_id = " + h_d_id
+-				+ "\n*   h_w_id = " + h_w_id + "\n*   h_date = " + h_date
+-				+ "\n* h_amount = " + h_amount + "\n*   h_data = " + h_data + "\n**********************************************");
+-	}
+-
+-} // end History
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java
+index 88a4456..f7d4a19 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java
+@@ -37,8 +37,6 @@ public class Payment extends TPCCProcedure {
+ 			+ "WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?");
+ 	public SQLStmt payUpdateCustBalSQL = new SQLStmt("UPDATE " + TPCCConstants.TABLENAME_CUSTOMER + " SET C_BALANCE = ?, C_YTD_PAYMENT = ?, "
+ 			+ "C_PAYMENT_CNT = ? WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?");
+-	public SQLStmt payInsertHistSQL = new SQLStmt("INSERT INTO " + TPCCConstants.TABLENAME_HISTORY + " (H_C_D_ID, H_C_W_ID, H_C_ID, H_D_ID, H_W_ID, H_DATE, H_AMOUNT, H_DATA) "
+-			+ " VALUES (?,?,?,?,?,?,?,?)");
+ 	public SQLStmt customerByNameSQL = new SQLStmt("SELECT C_FIRST, C_MIDDLE, C_ID, C_STREET_1, C_STREET_2, C_CITY, "
+ 			+ "C_STATE, C_ZIP, C_PHONE, C_CREDIT, C_CREDIT_LIM, C_DISCOUNT, "
+ 			+ "C_BALANCE, C_YTD_PAYMENT, C_PAYMENT_CNT, C_SINCE FROM " + TPCCConstants.TABLENAME_CUSTOMER + " "
+@@ -55,7 +53,6 @@ public class Payment extends TPCCProcedure {
+ 	private PreparedStatement payGetCustCdata = null;
+ 	private PreparedStatement payUpdateCustBalCdata = null;
+ 	private PreparedStatement payUpdateCustBal = null;
+-	private PreparedStatement payInsertHist = null;
+ 	private PreparedStatement customerByName = null;
+ 
+ 
+@@ -75,7 +72,6 @@ public class Payment extends TPCCProcedure {
+ 			payGetCustCdata =this.getPreparedStatement(conn, payGetCustCdataSQL);
+ 			payUpdateCustBalCdata =this.getPreparedStatement(conn, payUpdateCustBalCdataSQL);
+ 			payUpdateCustBal =this.getPreparedStatement(conn, payUpdateCustBalSQL);
+-			payInsertHist =this.getPreparedStatement(conn, payInsertHistSQL);
+ 			customerByName=this.getPreparedStatement(conn, customerByNameSQL);
+ 
+ 
+@@ -244,24 +240,6 @@ public class Payment extends TPCCProcedure {
+ 
+ 			}
+ 
+-			if (w_name.length() > 10)
+-				w_name = w_name.substring(0, 10);
+-			if (d_name.length() > 10)
+-				d_name = d_name.substring(0, 10);
+-			String h_data = w_name + "    " + d_name;
+-
+-
+-			payInsertHist.setInt(1, c_d_id);
+-			payInsertHist.setInt(2, c_w_id);
+-			payInsertHist.setInt(3, c.c_id);
+-			payInsertHist.setInt(4, d_id);
+-			payInsertHist.setInt(5, w_id);
+-			payInsertHist
+-					.setTimestamp(6, new Timestamp(System.currentTimeMillis()));
+-			payInsertHist.setFloat(7, h_amount);
+-			payInsertHist.setString(8, h_data);
+-			payInsertHist.executeUpdate();
+-
+ 			conn.commit();
+ 
+ 			StringBuilder terminalMessage = new StringBuilder();
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-db2-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-db2-ddl.sql
+index b881867..a2e3a9d 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-db2-ddl.sql
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-db2-ddl.sql
+@@ -44,18 +44,6 @@ CREATE TABLE district (
+   PRIMARY KEY (d_w_id,d_id)
+ );
+ 
+---DROP TABLE history;
+-CREATE TABLE history (
+-  h_c_id int NOT NULL,
+-  h_c_d_id int NOT NULL,
+-  h_c_w_id int NOT NULL,
+-  h_d_id int NOT NULL,
+-  h_w_id int NOT NULL,
+-  h_date timestamp NOT NULL,
+-  h_amount decimal(6,2) NOT NULL,
+-  h_data varchar(24) NOT NULL
+-);
+-
+ --DROP TABLE item;
+ CREATE TABLE item (
+   i_id int NOT NULL,
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-ddl.sql
+index b7ab006..a8987d6 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-ddl.sql
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-ddl.sql
+@@ -42,19 +42,6 @@ CREATE TABLE DISTRICT (
+   PRIMARY KEY (D_W_ID,D_ID)
+ );
+ 
+--- TODO: H_DATE ON UPDATE CURRENT_TIMESTAMP
+-DROP TABLE IF EXISTS HISTORY;
+-CREATE TABLE HISTORY (
+-  H_C_ID INT NOT NULL,
+-  H_C_D_ID INT NOT NULL,
+-  H_C_W_ID INT NOT NULL,
+-  H_D_ID INT NOT NULL,
+-  H_W_ID INT NOT NULL,
+-  H_DATE TIMESTAMP NOT NULL,
+-  H_AMOUNT DECIMAL(6,2) NOT NULL,
+-  H_DATA VARCHAR(24) NOT NULL
+-);
+-
+ DROP TABLE IF EXISTS ITEM;
+ CREATE TABLE ITEM (
+   I_ID INT NOT NULL,
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-mysql-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-mysql-ddl.sql
+index ea065ed..0a6a7e2 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-mysql-ddl.sql
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-mysql-ddl.sql
+@@ -1,7 +1,6 @@
+ -- TODO: C_SINCE ON UPDATE CURRENT_TIMESTAMP,
+ DROP TABLE IF EXISTS CUSTOMER;
+ DROP TABLE IF EXISTS DISTRICT;
+-DROP TABLE IF EXISTS HISTORY;
+ DROP TABLE IF EXISTS ITEM;
+ DROP TABLE IF EXISTS NEW_ORDER;
+ DROP TABLE IF EXISTS OORDER;
+@@ -50,20 +49,6 @@ CREATE TABLE DISTRICT (
+   PRIMARY KEY (D_W_ID,D_ID)
+ );
+ 
+--- TODO: H_DATE ON UPDATE CURRENT_TIMESTAMP
+-
+-CREATE TABLE HISTORY (
+-  H_C_ID INT NOT NULL,
+-  H_C_D_ID INT NOT NULL,
+-  H_C_W_ID INT NOT NULL,
+-  H_D_ID INT NOT NULL,
+-  H_W_ID INT NOT NULL,
+-  H_DATE TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+-  H_AMOUNT DECIMAL(6,2) NOT NULL,
+-  H_DATA VARCHAR(24) NOT NULL
+-);
+-
+-
+ CREATE TABLE ITEM (
+   I_ID INT NOT NULL,
+   I_NAME VARCHAR(24) NOT NULL,
+@@ -146,4 +131,4 @@ CREATE TABLE WAREHOUSE (
+ );
+ 
+ -- INDEXES
+-CREATE INDEX IDX_CUSTOMER_NAME ON CUSTOMER (C_W_ID,C_D_ID,C_LAST,C_FIRST);
+\ No newline at end of file
++CREATE INDEX IDX_CUSTOMER_NAME ON CUSTOMER (C_W_ID,C_D_ID,C_LAST,C_FIRST);
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql
+index dc12448..1315354 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql
+@@ -1,7 +1,6 @@
+ -- TODO: C_SINCE ON UPDATE CURRENT_TIMESTAMP,
+ DROP TABLE IF EXISTS CUSTOMER;
+ DROP TABLE IF EXISTS DISTRICT;
+-DROP TABLE IF EXISTS HISTORY;
+ DROP TABLE IF EXISTS ITEM;
+ DROP TABLE IF EXISTS NEW_ORDER;
+ DROP TABLE IF EXISTS OORDER;
+@@ -50,19 +49,6 @@ CREATE TABLE DISTRICT (
+   PRIMARY KEY (D_W_ID,D_ID)
+ );
+ 
+--- TODO: H_DATE ON UPDATE CURRENT_TIMESTAMP
+-
+-CREATE TABLE HISTORY (
+-  H_C_ID INT NOT NULL,
+-  H_C_D_ID INT NOT NULL,
+-  H_C_W_ID INT NOT NULL,
+-  H_D_ID INT NOT NULL,
+-  H_W_ID INT NOT NULL,
+-  H_DATE TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+-  H_AMOUNT DECIMAL(6,2) NOT NULL,
+-  H_DATA STRING NOT NULL
+-);
+-
+ 
+ CREATE TABLE ITEM (
+   I_ID INT NOT NULL,
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-oracle-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-oracle-ddl.sql
+index 1741bee..10c5cd5 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-oracle-ddl.sql
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-oracle-ddl.sql
+@@ -3,7 +3,6 @@ BEGIN EXECUTE IMMEDIATE 'DROP TABLE STOCK CASCADE CONSTRAINTS PURGE'; EXCEPTION
+ BEGIN EXECUTE IMMEDIATE 'DROP TABLE ITEM CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
+ BEGIN EXECUTE IMMEDIATE 'DROP TABLE NEW_ORDER CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
+ BEGIN EXECUTE IMMEDIATE 'DROP TABLE OORDER CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
+-BEGIN EXECUTE IMMEDIATE 'DROP TABLE HISTORY CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
+ BEGIN EXECUTE IMMEDIATE 'DROP TABLE CUSTOMER CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
+ BEGIN EXECUTE IMMEDIATE 'DROP TABLE DISTRICT CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
+ BEGIN EXECUTE IMMEDIATE 'DROP TABLE WAREHOUSE CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
+@@ -50,17 +49,6 @@ CREATE TABLE DISTRICT (
+   PRIMARY KEY (D_W_ID,D_ID)
+ );
+ 
+-CREATE TABLE HISTORY (
+-  H_C_ID NUMBER NOT NULL,
+-  H_C_D_ID NUMBER NOT NULL,
+-  H_C_W_ID NUMBER NOT NULL,
+-  H_D_ID NUMBER NOT NULL,
+-  H_W_ID NUMBER NOT NULL,
+-  H_DATE DATE NOT NULL,
+-  H_AMOUNT NUMBER(6,2) NOT NULL,
+-  H_DATA VARCHAR2(24) NOT NULL
+-);
+-
+ CREATE TABLE ITEM (
+   I_ID NUMBER NOT NULL,
+   I_NAME VARCHAR2(24) NOT NULL,
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-pg-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-pg-ddl.sql
+index 09c567d..0181812 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-pg-ddl.sql
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-pg-ddl.sql
+@@ -42,19 +42,6 @@ CREATE TABLE district (
+   PRIMARY KEY (d_w_id,d_id)
+ );
+ 
+--- TODO: h_date ON UPDATE CURRENT_TIMESTAMP
+-DROP TABLE IF EXISTS history;
+-CREATE TABLE history (
+-  h_c_id int NOT NULL,
+-  h_c_d_id int NOT NULL,
+-  h_c_w_id int NOT NULL,
+-  h_d_id int NOT NULL,
+-  h_w_id int NOT NULL,
+-  h_date timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+-  h_amount decimal(6,2) NOT NULL,
+-  h_data varchar(24) NOT NULL
+-);
+-
+ DROP TABLE IF EXISTS item;
+ CREATE TABLE item (
+   i_id int NOT NULL,
+@@ -137,4 +124,4 @@ CREATE TABLE warehouse (
+   w_state char(2) NOT NULL,
+   w_zip char(9) NOT NULL,
+   PRIMARY KEY (w_id)
+-);
+\ No newline at end of file
++);
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql
+index 9d156c0..fa3b311 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql
+@@ -5,7 +5,6 @@ IF OBJECT_ID('ORDER_LINE') IS NOT NULL DROP TABLE ORDER_LINE;
+ IF OBJECT_ID('OORDER') IS NOT NULL DROP TABLE OORDER;
+ IF OBJECT_ID('NEW_ORDER') IS NOT NULL DROP TABLE NEW_ORDER;
+ IF OBJECT_ID('ITEM') IS NOT NULL DROP TABLE ITEM;
+-IF OBJECT_ID('HISTORY') IS NOT NULL DROP TABLE HISTORY;
+ IF OBJECT_ID('DISTRICT') IS NOT NULL DROP TABLE DISTRICT;
+ IF OBJECT_ID('CUSTOMER') IS NOT NULL DROP TABLE CUSTOMER;
+ 
+@@ -88,17 +87,6 @@ CREATE TABLE [DBO].[ITEM](
+ 	PRIMARY KEY (I_ID)
+ );
+ 
+-CREATE TABLE [DBO].[HISTORY](
+-	[H_C_ID] [INT] NOT NULL,
+-	[H_C_D_ID] [INT] NOT NULL,
+-	[H_C_W_ID] [INT] NOT NULL,
+-	[H_D_ID] [INT] NOT NULL,
+-	[H_W_ID] [INT] NOT NULL,
+-	[H_DATE] [SMALLDATETIME] NULL,
+-	[H_AMOUNT] [DECIMAL](6, 2) NOT NULL,
+-	[H_DATA] [VARCHAR](24) NOT NULL
+-);
+-
+ CREATE TABLE [DBO].[DISTRICT](
+ 	[D_W_ID] [INT] NOT NULL,
+ 	[D_ID] [INT] NOT NULL,
+@@ -141,4 +129,4 @@ CREATE TABLE [DBO].[CUSTOMER](
+ );
+ 
+ -- CREATE INDEXES
+-CREATE INDEX IDX_CUSTOMER_NAME ON [DBO].[CUSTOMER] (C_W_ID,C_D_ID,C_LAST,C_FIRST);
+\ No newline at end of file
++CREATE INDEX IDX_CUSTOMER_NAME ON [DBO].[CUSTOMER] (C_W_ID,C_D_ID,C_LAST,C_FIRST);
+-- 
+1.7.9.5
+

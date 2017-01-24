@@ -1,0 +1,522 @@
+From 68204e882a49bb9d37d2722a5f2a7483a9f07b0e Mon Sep 17 00:00:00 2001
+From: Ryan Johnson <ryan.johnson@cs.utoronto.ca>
+Date: Thu, 20 Mar 2014 08:41:44 -0400
+Subject: [PATCH 05/15] Refactor: rename all tpcc packages to tpcc_plus
+
+---
+ .../benchmarks/tpcc_plus/TPCCBenchmark.java        |    6 ++--
+ .../benchmarks/tpcc_plus/TPCCConstants.java        |    2 +-
+ .../benchmarks/tpcc_plus/TPCCLoader.java           |   32 ++++++++++----------
+ .../benchmarks/tpcc_plus/TPCCUtil.java             |    8 ++---
+ .../benchmarks/tpcc_plus/TPCCWorker.java           |   14 ++++-----
+ .../benchmarks/tpcc_plus/jTPCCConfig.java          |    2 +-
+ .../benchmarks/tpcc_plus/jdbc/ExecJDBC.java        |    4 +--
+ .../benchmarks/tpcc_plus/jdbc/HSQLDBjdbcIO.java    |    8 ++---
+ .../benchmarks/tpcc_plus/jdbc/jdbcIO.java          |    8 ++---
+ .../benchmarks/tpcc_plus/pojo/Customer.java        |    2 +-
+ .../benchmarks/tpcc_plus/pojo/District.java        |    2 +-
+ .../benchmarks/tpcc_plus/pojo/Item.java            |    2 +-
+ .../benchmarks/tpcc_plus/pojo/NewOrder.java        |    2 +-
+ .../benchmarks/tpcc_plus/pojo/Oorder.java          |    2 +-
+ .../benchmarks/tpcc_plus/pojo/OrderLine.java       |    2 +-
+ .../benchmarks/tpcc_plus/pojo/Stock.java           |    2 +-
+ .../benchmarks/tpcc_plus/pojo/Warehouse.java       |    2 +-
+ .../benchmarks/tpcc_plus/procedures/Delivery.java  |    8 ++---
+ .../benchmarks/tpcc_plus/procedures/NewOrder.java  |   10 +++---
+ .../tpcc_plus/procedures/OrderStatus.java          |   10 +++---
+ .../benchmarks/tpcc_plus/procedures/Payment.java   |   12 ++++----
+ .../tpcc_plus/procedures/StockLevel.java           |    8 ++---
+ .../tpcc_plus/procedures/TPCCProcedure.java        |    4 +--
+ 23 files changed, 76 insertions(+), 76 deletions(-)
+
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCBenchmark.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCBenchmark.java
+index 5bbe8d5..65b3b23 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCBenchmark.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCBenchmark.java
+@@ -17,9 +17,9 @@
+  *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  *  See the GNU Lesser General Public License for more details.
+  ******************************************************************************/
+-package com.oltpbenchmark.benchmarks.tpcc;
++package com.oltpbenchmark.benchmarks.tpcc_plus;
+ 
+-import static com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig.terminalPrefix;
++import static com.oltpbenchmark.benchmarks.tpcc_plus.jTPCCConfig.terminalPrefix;
+ 
+ import java.io.IOException;
+ import java.sql.Connection;
+@@ -34,7 +34,7 @@ import com.oltpbenchmark.WorkloadConfiguration;
+ import com.oltpbenchmark.api.BenchmarkModule;
+ import com.oltpbenchmark.api.Loader;
+ import com.oltpbenchmark.api.Worker;
+-import com.oltpbenchmark.benchmarks.tpcc.procedures.NewOrder;
++import com.oltpbenchmark.benchmarks.tpcc_plus.procedures.NewOrder;
+ import com.oltpbenchmark.util.SimpleSystemPrinter;
+ 
+ public class TPCCBenchmark extends BenchmarkModule {
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCConstants.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCConstants.java
+index 9830f4f..468e46c 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCConstants.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCConstants.java
+@@ -1,4 +1,4 @@
+-package com.oltpbenchmark.benchmarks.tpcc;
++package com.oltpbenchmark.benchmarks.tpcc_plus;
+ 
+ public abstract class TPCCConstants {
+     public static final String TABLENAME_DISTRICT = "DISTRICT";
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java
+index ca4a1bd..3327579 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java
+@@ -17,7 +17,7 @@
+  *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  *  See the GNU Lesser General Public License for more details.
+  ******************************************************************************/
+-package com.oltpbenchmark.benchmarks.tpcc;
++package com.oltpbenchmark.benchmarks.tpcc_plus;
+ 
+ /*
+  * Copyright (C) 2004-2006, Denis Lussier
+@@ -36,11 +36,11 @@ package com.oltpbenchmark.benchmarks.tpcc;
+  *
+  */
+ 
+-import static com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig.configCommitCount;
+-import static com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig.configCustPerDist;
+-import static com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig.configDistPerWhse;
+-import static com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig.configItemCount;
+-import static com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig.configWhseCount;
++import static com.oltpbenchmark.benchmarks.tpcc_plus.jTPCCConfig.configCommitCount;
++import static com.oltpbenchmark.benchmarks.tpcc_plus.jTPCCConfig.configCustPerDist;
++import static com.oltpbenchmark.benchmarks.tpcc_plus.jTPCCConfig.configDistPerWhse;
++import static com.oltpbenchmark.benchmarks.tpcc_plus.jTPCCConfig.configItemCount;
++import static com.oltpbenchmark.benchmarks.tpcc_plus.jTPCCConfig.configWhseCount;
+ 
+ import java.io.FileOutputStream;
+ import java.io.PrintWriter;
+@@ -53,16 +53,16 @@ import java.util.Random;
+ import org.apache.log4j.Logger;
+ 
+ import com.oltpbenchmark.api.Loader;
+-import com.oltpbenchmark.benchmarks.tpcc.jdbc.jdbcIO;
+-import com.oltpbenchmark.benchmarks.tpcc.pojo.Customer;
+-import com.oltpbenchmark.benchmarks.tpcc.pojo.District;
+-import com.oltpbenchmark.benchmarks.tpcc.pojo.History;
+-import com.oltpbenchmark.benchmarks.tpcc.pojo.Item;
+-import com.oltpbenchmark.benchmarks.tpcc.pojo.NewOrder;
+-import com.oltpbenchmark.benchmarks.tpcc.pojo.Oorder;
+-import com.oltpbenchmark.benchmarks.tpcc.pojo.OrderLine;
+-import com.oltpbenchmark.benchmarks.tpcc.pojo.Stock;
+-import com.oltpbenchmark.benchmarks.tpcc.pojo.Warehouse;
++import com.oltpbenchmark.benchmarks.tpcc_plus.jdbc.jdbcIO;
++import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.Customer;
++import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.District;
++import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.History;
++import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.Item;
++import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.NewOrder;
++import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.Oorder;
++import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.OrderLine;
++import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.Stock;
++import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.Warehouse;
+ import com.oltpbenchmark.catalog.Table;
+ import com.oltpbenchmark.util.SQLUtil;
+ 
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCUtil.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCUtil.java
+index 923e4de..f907a2d 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCUtil.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCUtil.java
+@@ -17,7 +17,7 @@
+  *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  *  See the GNU Lesser General Public License for more details.
+  ******************************************************************************/
+-package com.oltpbenchmark.benchmarks.tpcc;
++package com.oltpbenchmark.benchmarks.tpcc_plus;
+ 
+ /*
+  * jTPCCUtil - utility functions for the Open Source Java implementation of 
+@@ -28,14 +28,14 @@ package com.oltpbenchmark.benchmarks.tpcc;
+  *
+  */
+ 
+-import static com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig.dateFormat;
+-import static com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig.nameTokens;
++import static com.oltpbenchmark.benchmarks.tpcc_plus.jTPCCConfig.dateFormat;
++import static com.oltpbenchmark.benchmarks.tpcc_plus.jTPCCConfig.nameTokens;
+ 
+ import java.sql.ResultSet;
+ import java.sql.SQLException;
+ import java.util.Random;
+ 
+-import com.oltpbenchmark.benchmarks.tpcc.pojo.Customer;
++import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.Customer;
+ import com.oltpbenchmark.util.RandomGenerator;
+ 
+ public class TPCCUtil {
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCWorker.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCWorker.java
+index 603218b..8bbf237 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCWorker.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCWorker.java
+@@ -17,7 +17,7 @@
+  *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  *  See the GNU Lesser General Public License for more details.
+  ******************************************************************************/
+-package com.oltpbenchmark.benchmarks.tpcc;
++package com.oltpbenchmark.benchmarks.tpcc_plus;
+ 
+ /*
+  * jTPCCTerminal - Terminal emulator code for jTPCC (transactions)
+@@ -34,12 +34,12 @@ import java.util.concurrent.atomic.AtomicInteger;
+ import com.oltpbenchmark.api.Procedure.UserAbortException;
+ import com.oltpbenchmark.api.TransactionType;
+ import com.oltpbenchmark.api.Worker;
+-import com.oltpbenchmark.benchmarks.tpcc.procedures.Delivery;
+-import com.oltpbenchmark.benchmarks.tpcc.procedures.NewOrder;
+-import com.oltpbenchmark.benchmarks.tpcc.procedures.OrderStatus;
+-import com.oltpbenchmark.benchmarks.tpcc.procedures.Payment;
+-import com.oltpbenchmark.benchmarks.tpcc.procedures.StockLevel;
+-import com.oltpbenchmark.benchmarks.tpcc.procedures.TPCCProcedure;
++import com.oltpbenchmark.benchmarks.tpcc_plus.procedures.Delivery;
++import com.oltpbenchmark.benchmarks.tpcc_plus.procedures.NewOrder;
++import com.oltpbenchmark.benchmarks.tpcc_plus.procedures.OrderStatus;
++import com.oltpbenchmark.benchmarks.tpcc_plus.procedures.Payment;
++import com.oltpbenchmark.benchmarks.tpcc_plus.procedures.StockLevel;
++import com.oltpbenchmark.benchmarks.tpcc_plus.procedures.TPCCProcedure;
+ import com.oltpbenchmark.types.TransactionStatus;
+ import com.oltpbenchmark.util.SimplePrinter;
+ 
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/jTPCCConfig.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/jTPCCConfig.java
+index a1b45f3..9b073fa 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/jTPCCConfig.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/jTPCCConfig.java
+@@ -17,7 +17,7 @@
+  *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  *  See the GNU Lesser General Public License for more details.
+  ******************************************************************************/
+-package com.oltpbenchmark.benchmarks.tpcc;
++package com.oltpbenchmark.benchmarks.tpcc_plus;
+ 
+ /*
+  * jTPCCConfig - Basic configuration parameters for jTPCC
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/ExecJDBC.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/ExecJDBC.java
+index 6c08b86..88fc4c2 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/ExecJDBC.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/ExecJDBC.java
+@@ -17,7 +17,7 @@
+  *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  *  See the GNU Lesser General Public License for more details.
+  ******************************************************************************/
+-package com.oltpbenchmark.benchmarks.tpcc.jdbc;
++package com.oltpbenchmark.benchmarks.tpcc_plus.jdbc;
+ 
+ /*
+  * ExecJDBC - Command line program to process SQL DDL statements, from   
+@@ -37,7 +37,7 @@ import java.sql.SQLException;
+ import java.sql.Statement;
+ import java.util.Properties;
+ 
+-import com.oltpbenchmark.benchmarks.tpcc.TPCCUtil;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCUtil;
+ 
+ 
+ public class ExecJDBC {
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/HSQLDBjdbcIO.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/HSQLDBjdbcIO.java
+index d335351..8c16a19 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/HSQLDBjdbcIO.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/HSQLDBjdbcIO.java
+@@ -17,7 +17,7 @@
+  *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  *  See the GNU Lesser General Public License for more details.
+  ******************************************************************************/
+-package com.oltpbenchmark.benchmarks.tpcc.jdbc;
++package com.oltpbenchmark.benchmarks.tpcc_plus.jdbc;
+ 
+ /*
+  * jdbcIO - execute JDBC statements
+@@ -30,9 +30,9 @@ import java.sql.PreparedStatement;
+ import java.sql.SQLException;
+ import java.sql.Timestamp;
+ 
+-import com.oltpbenchmark.benchmarks.tpcc.pojo.NewOrder;
+-import com.oltpbenchmark.benchmarks.tpcc.pojo.Oorder;
+-import com.oltpbenchmark.benchmarks.tpcc.pojo.OrderLine;
++import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.NewOrder;
++import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.Oorder;
++import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.OrderLine;
+ 
+ 
+ public class HSQLDBjdbcIO {
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/jdbcIO.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/jdbcIO.java
+index 65ddb8c..0af1a8a 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/jdbcIO.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/jdbcIO.java
+@@ -17,7 +17,7 @@
+  *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  *  See the GNU Lesser General Public License for more details.
+  ******************************************************************************/
+-package com.oltpbenchmark.benchmarks.tpcc.jdbc;
++package com.oltpbenchmark.benchmarks.tpcc_plus.jdbc;
+ 
+ /*
+  * jdbcIO - execute JDBC statements
+@@ -31,9 +31,9 @@ import java.sql.SQLException;
+ import java.sql.Timestamp;
+ import java.sql.Types;
+ 
+-import com.oltpbenchmark.benchmarks.tpcc.pojo.NewOrder;
+-import com.oltpbenchmark.benchmarks.tpcc.pojo.Oorder;
+-import com.oltpbenchmark.benchmarks.tpcc.pojo.OrderLine;
++import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.NewOrder;
++import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.Oorder;
++import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.OrderLine;
+ 
+ 
+ public class jdbcIO {
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Customer.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Customer.java
+index 9228582..33bd400 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Customer.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Customer.java
+@@ -17,7 +17,7 @@
+  *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  *  See the GNU Lesser General Public License for more details.
+  ******************************************************************************/
+-package com.oltpbenchmark.benchmarks.tpcc.pojo;
++package com.oltpbenchmark.benchmarks.tpcc_plus.pojo;
+ 
+ import java.sql.Timestamp;
+ 
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/District.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/District.java
+index 85a61b3..4e8bd10 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/District.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/District.java
+@@ -17,7 +17,7 @@
+  *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  *  See the GNU Lesser General Public License for more details.
+  ******************************************************************************/
+-package com.oltpbenchmark.benchmarks.tpcc.pojo;
++package com.oltpbenchmark.benchmarks.tpcc_plus.pojo;
+ 
+ import java.io.Serializable;
+ 
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Item.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Item.java
+index f56adf2..4e0808d 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Item.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Item.java
+@@ -17,7 +17,7 @@
+  *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  *  See the GNU Lesser General Public License for more details.
+  ******************************************************************************/
+-package com.oltpbenchmark.benchmarks.tpcc.pojo;
++package com.oltpbenchmark.benchmarks.tpcc_plus.pojo;
+ 
+ public class Item {
+ 
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/NewOrder.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/NewOrder.java
+index b67f910..9c3c96d 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/NewOrder.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/NewOrder.java
+@@ -17,7 +17,7 @@
+  *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  *  See the GNU Lesser General Public License for more details.
+  ******************************************************************************/
+-package com.oltpbenchmark.benchmarks.tpcc.pojo;
++package com.oltpbenchmark.benchmarks.tpcc_plus.pojo;
+ 
+ import java.io.Serializable;
+ 
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Oorder.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Oorder.java
+index 12b1905..7986b48 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Oorder.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Oorder.java
+@@ -17,7 +17,7 @@
+  *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  *  See the GNU Lesser General Public License for more details.
+  ******************************************************************************/
+-package com.oltpbenchmark.benchmarks.tpcc.pojo;
++package com.oltpbenchmark.benchmarks.tpcc_plus.pojo;
+ 
+ public class Oorder {
+ 
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/OrderLine.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/OrderLine.java
+index 335ed7a..4ad02ef 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/OrderLine.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/OrderLine.java
+@@ -17,7 +17,7 @@
+  *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  *  See the GNU Lesser General Public License for more details.
+  ******************************************************************************/
+-package com.oltpbenchmark.benchmarks.tpcc.pojo;
++package com.oltpbenchmark.benchmarks.tpcc_plus.pojo;
+ 
+ public class OrderLine {
+ 
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Stock.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Stock.java
+index ff64f89..14cdf56 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Stock.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Stock.java
+@@ -17,7 +17,7 @@
+  *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  *  See the GNU Lesser General Public License for more details.
+  ******************************************************************************/
+-package com.oltpbenchmark.benchmarks.tpcc.pojo;
++package com.oltpbenchmark.benchmarks.tpcc_plus.pojo;
+ 
+ import java.io.Serializable;
+ 
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Warehouse.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Warehouse.java
+index aa93bbc..171b60d 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Warehouse.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Warehouse.java
+@@ -17,7 +17,7 @@
+  *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  *  See the GNU Lesser General Public License for more details.
+  ******************************************************************************/
+-package com.oltpbenchmark.benchmarks.tpcc.pojo;
++package com.oltpbenchmark.benchmarks.tpcc_plus.pojo;
+ 
+ import java.io.Serializable;
+ 
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Delivery.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Delivery.java
+index 5396e14..93741db 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Delivery.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Delivery.java
+@@ -1,4 +1,4 @@
+-package com.oltpbenchmark.benchmarks.tpcc.procedures;
++package com.oltpbenchmark.benchmarks.tpcc_plus.procedures;
+ 
+ import java.sql.Connection;
+ import java.sql.PreparedStatement;
+@@ -8,9 +8,9 @@ import java.sql.Timestamp;
+ import java.util.Random;
+ 
+ import com.oltpbenchmark.api.SQLStmt;
+-import com.oltpbenchmark.benchmarks.tpcc.TPCCConstants;
+-import com.oltpbenchmark.benchmarks.tpcc.TPCCUtil;
+-import com.oltpbenchmark.benchmarks.tpcc.TPCCWorker;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCConstants;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCUtil;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCWorker;
+ 
+ public class Delivery extends TPCCProcedure {
+ 
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/NewOrder.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/NewOrder.java
+index 96d0978..d452f27 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/NewOrder.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/NewOrder.java
+@@ -1,4 +1,4 @@
+-package com.oltpbenchmark.benchmarks.tpcc.procedures;
++package com.oltpbenchmark.benchmarks.tpcc_plus.procedures;
+ 
+ import java.sql.Connection;
+ import java.sql.PreparedStatement;
+@@ -10,10 +10,10 @@ import java.util.Random;
+ import org.apache.log4j.Logger;
+ 
+ import com.oltpbenchmark.api.SQLStmt;
+-import com.oltpbenchmark.benchmarks.tpcc.TPCCConstants;
+-import com.oltpbenchmark.benchmarks.tpcc.TPCCUtil;
+-import com.oltpbenchmark.benchmarks.tpcc.TPCCWorker;
+-import com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCConstants;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCUtil;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCWorker;
++import com.oltpbenchmark.benchmarks.tpcc_plus.jTPCCConfig;
+ 
+ public class NewOrder extends TPCCProcedure {
+ 
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/OrderStatus.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/OrderStatus.java
+index 1c3d93f..1aa89d7 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/OrderStatus.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/OrderStatus.java
+@@ -1,4 +1,4 @@
+-package com.oltpbenchmark.benchmarks.tpcc.procedures;
++package com.oltpbenchmark.benchmarks.tpcc_plus.procedures;
+ 
+ import java.sql.Connection;
+ import java.sql.PreparedStatement;
+@@ -11,10 +11,10 @@ import java.util.Random;
+ import org.apache.log4j.Logger;
+ 
+ import com.oltpbenchmark.api.SQLStmt;
+-import com.oltpbenchmark.benchmarks.tpcc.TPCCConstants;
+-import com.oltpbenchmark.benchmarks.tpcc.TPCCUtil;
+-import com.oltpbenchmark.benchmarks.tpcc.TPCCWorker;
+-import com.oltpbenchmark.benchmarks.tpcc.pojo.Customer;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCConstants;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCUtil;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCWorker;
++import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.Customer;
+ 
+ public class OrderStatus extends TPCCProcedure {
+ 
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java
+index 5b801e3..88a4456 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java
+@@ -1,4 +1,4 @@
+-package com.oltpbenchmark.benchmarks.tpcc.procedures;
++package com.oltpbenchmark.benchmarks.tpcc_plus.procedures;
+ 
+ import java.sql.Connection;
+ import java.sql.PreparedStatement;
+@@ -11,11 +11,11 @@ import java.util.Random;
+ import org.apache.log4j.Logger;
+ 
+ import com.oltpbenchmark.api.SQLStmt;
+-import com.oltpbenchmark.benchmarks.tpcc.TPCCConstants;
+-import com.oltpbenchmark.benchmarks.tpcc.TPCCUtil;
+-import com.oltpbenchmark.benchmarks.tpcc.TPCCWorker;
+-import com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig;
+-import com.oltpbenchmark.benchmarks.tpcc.pojo.Customer;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCConstants;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCUtil;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCWorker;
++import com.oltpbenchmark.benchmarks.tpcc_plus.jTPCCConfig;
++import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.Customer;
+ 
+ public class Payment extends TPCCProcedure {
+ 
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/StockLevel.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/StockLevel.java
+index e4e2cce..a411536 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/StockLevel.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/StockLevel.java
+@@ -1,4 +1,4 @@
+-package com.oltpbenchmark.benchmarks.tpcc.procedures;
++package com.oltpbenchmark.benchmarks.tpcc_plus.procedures;
+ 
+ import java.sql.Connection;
+ import java.sql.PreparedStatement;
+@@ -9,9 +9,9 @@ import java.util.Random;
+ import org.apache.log4j.Logger;
+ 
+ import com.oltpbenchmark.api.SQLStmt;
+-import com.oltpbenchmark.benchmarks.tpcc.TPCCConstants;
+-import com.oltpbenchmark.benchmarks.tpcc.TPCCUtil;
+-import com.oltpbenchmark.benchmarks.tpcc.TPCCWorker;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCConstants;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCUtil;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCWorker;
+ 
+ public class StockLevel extends TPCCProcedure {
+ 
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/TPCCProcedure.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/TPCCProcedure.java
+index c495623..6767f83 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/TPCCProcedure.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/TPCCProcedure.java
+@@ -1,4 +1,4 @@
+-package com.oltpbenchmark.benchmarks.tpcc.procedures;
++package com.oltpbenchmark.benchmarks.tpcc_plus.procedures;
+ 
+ import java.sql.Connection;
+ import java.sql.ResultSet;
+@@ -6,7 +6,7 @@ import java.sql.SQLException;
+ import java.util.Random;
+ 
+ import com.oltpbenchmark.api.Procedure;
+-import com.oltpbenchmark.benchmarks.tpcc.TPCCWorker;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCWorker;
+ 
+ public abstract class TPCCProcedure extends Procedure {
+ 
+-- 
+1.7.9.5
+

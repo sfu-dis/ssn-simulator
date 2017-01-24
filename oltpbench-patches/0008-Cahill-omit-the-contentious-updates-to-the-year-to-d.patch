@@ -1,0 +1,252 @@
+From a52fa16d2bc06ce43d247d8fd74592f8c50e30f7 Mon Sep 17 00:00:00 2001
+From: Ryan Johnson <ryan.johnson@cs.utoronto.ca>
+Date: Thu, 20 Mar 2014 09:05:03 -0400
+Subject: [PATCH 08/15] Cahill: omit the [contentious] updates to the
+ year-to-date field in the Warehouse and District
+ tables.
+
+The value can be calculated when (if) required with an aggregate query over c_ytd of customers in a district or warehouse
+---
+ .../benchmarks/tpcc_plus/TPCCLoader.java           |    3 --
+ .../benchmarks/tpcc_plus/pojo/Warehouse.java       |    3 +-
+ .../benchmarks/tpcc_plus/procedures/Payment.java   |   31 ++------------------
+ .../benchmarks/tpcc_plus/tpcc-db2-ddl.sql          |    1 -
+ .../benchmarks/tpcc_plus/tpcc-ddl.sql              |    1 -
+ .../benchmarks/tpcc_plus/tpcc-mysql-ddl.sql        |    1 -
+ .../benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql        |    1 -
+ .../benchmarks/tpcc_plus/tpcc-oracle-ddl.sql       |    1 -
+ .../benchmarks/tpcc_plus/tpcc-pg-ddl.sql           |    1 -
+ .../benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql    |    1 -
+ 10 files changed, 3 insertions(+), 41 deletions(-)
+
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java
+index 34f176c..ef70eed 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java
+@@ -284,7 +284,6 @@ public class TPCCLoader extends Loader{
+ 			for (int i = 1; i <= whseKount; i++) {
+ 
+ 				warehouse.w_id = i;
+-				warehouse.w_ytd = 300000;
+ 
+ 				// random within [0.0000 .. 0.2000]
+ 				warehouse.w_tax = (float) ((TPCCUtil.randomNumber(0, 2000, gen)) / 10000.0);
+@@ -302,7 +301,6 @@ public class TPCCLoader extends Loader{
+ 
+ 				if (outputFiles == false) {
+ 					whsePrepStmt.setLong(1, warehouse.w_id);
+-					whsePrepStmt.setDouble(2, warehouse.w_ytd);
+ 					whsePrepStmt.setDouble(3, warehouse.w_tax);
+ 					whsePrepStmt.setString(4, warehouse.w_name);
+ 					whsePrepStmt.setString(5, warehouse.w_street_1);
+@@ -314,7 +312,6 @@ public class TPCCLoader extends Loader{
+ 				} else {
+ 					String str = "";
+ 					str = str + warehouse.w_id + ",";
+-					str = str + warehouse.w_ytd + ",";
+ 					str = str + warehouse.w_tax + ",";
+ 					str = str + warehouse.w_name + ",";
+ 					str = str + warehouse.w_street_1 + ",";
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Warehouse.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Warehouse.java
+index 171b60d..d68432f 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Warehouse.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Warehouse.java
+@@ -24,7 +24,6 @@ import java.io.Serializable;
+ public class Warehouse implements Serializable {
+ 
+ 	public int w_id; // PRIMARY KEY
+-	public float w_ytd;
+ 	public float w_tax;
+ 	public String w_name;
+ 	public String w_street_1;
+@@ -36,7 +35,7 @@ public class Warehouse implements Serializable {
+ 	@Override
+ 	public String toString() {
+ 		return ("\n***************** Warehouse ********************"
+-				+ "\n*       w_id = " + w_id + "\n*      w_ytd = " + w_ytd
++				+ "\n*       w_id = " + w_id
+ 				+ "\n*      w_tax = " + w_tax + "\n*     w_name = " + w_name
+ 				+ "\n* w_street_1 = " + w_street_1 + "\n* w_street_2 = "
+ 				+ w_street_2 + "\n*     w_city = " + w_city
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java
+index f7d4a19..062321a 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java
+@@ -21,10 +21,8 @@ public class Payment extends TPCCProcedure {
+ 
+     private static final Logger LOG = Logger.getLogger(Payment.class);
+ 
+-	public SQLStmt payUpdateWhseSQL = new SQLStmt("UPDATE " + TPCCConstants.TABLENAME_WAREHOUSE + " SET W_YTD = W_YTD + ?  WHERE W_ID = ? ");
+ 	public SQLStmt payGetWhseSQL = new SQLStmt("SELECT W_STREET_1, W_STREET_2, W_CITY, W_STATE, W_ZIP, W_NAME"
+ 			+ " FROM " + TPCCConstants.TABLENAME_WAREHOUSE + " WHERE W_ID = ?");
+-	public SQLStmt payUpdateDistSQL = new SQLStmt("UPDATE " + TPCCConstants.TABLENAME_DISTRICT + " SET D_YTD = D_YTD + ? WHERE D_W_ID = ? AND D_ID = ?");
+ 	public SQLStmt payGetDistSQL = new SQLStmt("SELECT D_STREET_1, D_STREET_2, D_CITY, D_STATE, D_ZIP, D_NAME"
+ 			+ " FROM " + TPCCConstants.TABLENAME_DISTRICT + " WHERE D_W_ID = ? AND D_ID = ?");
+ 	public SQLStmt payGetCustSQL = new SQLStmt("SELECT C_FIRST, C_MIDDLE, C_LAST, C_STREET_1, C_STREET_2, "
+@@ -45,9 +43,7 @@ public class Payment extends TPCCProcedure {
+ 
+ 
+ 	// Payment Txn
+-	private PreparedStatement payUpdateWhse = null;
+ 	private PreparedStatement payGetWhse = null;
+-	private PreparedStatement payUpdateDist = null;
+ 	private PreparedStatement payGetDist = null;
+ 	private PreparedStatement payGetCust = null;
+ 	private PreparedStatement payGetCustCdata = null;
+@@ -64,9 +60,7 @@ public class Payment extends TPCCProcedure {
+ 
+ 
+ 			//initializing all prepared statements
+-			payUpdateWhse=this.getPreparedStatement(conn, payUpdateWhseSQL);
+ 			payGetWhse=this.getPreparedStatement(conn, payGetWhseSQL);
+-			payUpdateDist=this.getPreparedStatement(conn, payUpdateDistSQL);
+ 			payGetDist =this.getPreparedStatement(conn, payGetDistSQL);
+ 			payGetCust =this.getPreparedStatement(conn, payGetCustSQL);
+ 			payGetCustCdata =this.getPreparedStatement(conn, payGetCustCdataSQL);
+@@ -75,8 +69,6 @@ public class Payment extends TPCCProcedure {
+ 			customerByName=this.getPreparedStatement(conn, customerByNameSQL);
+ 
+ 
+-		    // payUpdateWhse =this.getPreparedStatement(conn, payUpdateWhseSQL);
+-
+ 
+             int districtID = TPCCUtil.randomNumber(terminalDistrictLowerID,terminalDistrictUpperID, gen);
+         	int customerID = TPCCUtil.getCustomerID(gen);
+@@ -128,16 +120,6 @@ public class Payment extends TPCCProcedure {
+ 			String w_street_1, w_street_2, w_city, w_state, w_zip, w_name;
+ 			String d_street_1, d_street_2, d_city, d_state, d_zip, d_name;
+ 
+-
+-			payUpdateWhse.setFloat(1, h_amount);
+-			payUpdateWhse.setInt(2, w_id);
+-			// MySQL reports deadlocks due to lock upgrades:
+-			// t1: read w_id = x; t2: update w_id = x; t1 update w_id = x
+-			int result = payUpdateWhse.executeUpdate();
+-			if (result == 0)
+-				throw new RuntimeException("W_ID=" + w_id + " not found!");
+-
+-
+ 			payGetWhse.setInt(1, w_id);
+ 			ResultSet rs = payGetWhse.executeQuery();
+ 			if (!rs.next())
+@@ -152,15 +134,6 @@ public class Payment extends TPCCProcedure {
+ 			rs = null;
+ 
+ 
+-			payUpdateDist.setFloat(1, h_amount);
+-			payUpdateDist.setInt(2, w_id);
+-			payUpdateDist.setInt(3, d_id);
+-			result = payUpdateDist.executeUpdate();
+-			if (result == 0)
+-				throw new RuntimeException("D_ID=" + d_id + " D_W_ID=" + w_id
+-						+ " not found!");
+-
+-
+ 			payGetDist.setInt(1, w_id);
+ 			payGetDist.setInt(2, d_id);
+ 			rs = payGetDist.executeQuery();
+@@ -216,7 +189,7 @@ public class Payment extends TPCCProcedure {
+ 				payUpdateCustBalCdata.setInt(5, c_w_id);
+ 				payUpdateCustBalCdata.setInt(6, c_d_id);
+ 				payUpdateCustBalCdata.setInt(7, c.c_id);
+-				result = payUpdateCustBalCdata.executeUpdate();
++				int result = payUpdateCustBalCdata.executeUpdate();
+ 
+ 				if (result == 0)
+ 					throw new RuntimeException(
+@@ -232,7 +205,7 @@ public class Payment extends TPCCProcedure {
+ 				payUpdateCustBal.setInt(4, c_w_id);
+ 				payUpdateCustBal.setInt(5, c_d_id);
+ 				payUpdateCustBal.setInt(6, c.c_id);
+-				result = payUpdateCustBal.executeUpdate();
++				int result = payUpdateCustBal.executeUpdate();
+ 
+ 				if (result == 0)
+ 					throw new RuntimeException("C_ID=" + c.c_id + " C_W_ID="
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-db2-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-db2-ddl.sql
+index a2e3a9d..e0f1e3b 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-db2-ddl.sql
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-db2-ddl.sql
+@@ -116,7 +116,6 @@ CREATE TABLE stock (
+ --DROP TABLE warehouse;
+ CREATE TABLE warehouse (
+   w_id int NOT NULL,
+-  w_ytd decimal(12,2) NOT NULL,
+   w_tax decimal(4,4) NOT NULL,
+   w_name varchar(10) NOT NULL,
+   w_street_1 varchar(20) NOT NULL,
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-ddl.sql
+index a8987d6..4d7f562 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-ddl.sql
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-ddl.sql
+@@ -115,7 +115,6 @@ CREATE TABLE STOCK (
+ DROP TABLE IF EXISTS WAREHOUSE;
+ CREATE TABLE WAREHOUSE (
+   W_ID INT NOT NULL,
+-  W_YTD DECIMAL(12,2) NOT NULL,
+   W_TAX DECIMAL(4,4) NOT NULL,
+   W_NAME VARCHAR(10) NOT NULL,
+   W_STREET_1 VARCHAR(20) NOT NULL,
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-mysql-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-mysql-ddl.sql
+index 0a6a7e2..02e33db 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-mysql-ddl.sql
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-mysql-ddl.sql
+@@ -119,7 +119,6 @@ CREATE TABLE STOCK (
+ 
+ CREATE TABLE WAREHOUSE (
+   W_ID INT NOT NULL,
+-  W_YTD DECIMAL(12,2) NOT NULL,
+   W_TAX DECIMAL(4,4) NOT NULL,
+   W_NAME VARCHAR(10) NOT NULL,
+   W_STREET_1 VARCHAR(20) NOT NULL,
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql
+index 1315354..ab7f5a7 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql
+@@ -120,7 +120,6 @@ CREATE TABLE STOCK (
+ 
+ CREATE TABLE WAREHOUSE (
+   W_ID INT NOT NULL,
+-  W_YTD DECIMAL(12,2) NOT NULL,
+   W_TAX DECIMAL(4,4) NOT NULL,
+   W_NAME STRING NOT NULL,
+   W_STREET_1 STRING NOT NULL,
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-oracle-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-oracle-ddl.sql
+index 10c5cd5..fd5e418 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-oracle-ddl.sql
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-oracle-ddl.sql
+@@ -115,7 +115,6 @@ CREATE TABLE STOCK (
+ 
+ CREATE TABLE WAREHOUSE (
+   W_ID NUMBER NOT NULL,
+-  W_YTD NUMBER(12,2) NOT NULL,
+   W_TAX NUMBER(4,4) NOT NULL,
+   W_NAME VARCHAR2(10) NOT NULL,
+   W_STREET_1 VARCHAR2(20) NOT NULL,
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-pg-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-pg-ddl.sql
+index 0181812..b248452 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-pg-ddl.sql
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-pg-ddl.sql
+@@ -115,7 +115,6 @@ CREATE TABLE stock (
+ DROP TABLE IF EXISTS warehouse;
+ CREATE TABLE warehouse (
+   w_id int NOT NULL,
+-  w_ytd decimal(12,2) NOT NULL,
+   w_tax decimal(4,4) NOT NULL,
+   w_name varchar(10) NOT NULL,
+   w_street_1 varchar(20) NOT NULL,
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql
+index fa3b311..c639d6a 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql
+@@ -12,7 +12,6 @@ IF OBJECT_ID('CUSTOMER') IS NOT NULL DROP TABLE CUSTOMER;
+ 
+ CREATE TABLE [DBO].[WAREHOUSE](
+ 	[W_ID] [INT] NOT NULL,
+-	[W_YTD] [DECIMAL](12, 2) NOT NULL,
+ 	[W_TAX] [DECIMAL](4, 4) NOT NULL,
+ 	[W_NAME] [VARCHAR](10) NOT NULL,
+ 	[W_STREET_1] [VARCHAR](20) NOT NULL,
+-- 
+1.7.9.5
+

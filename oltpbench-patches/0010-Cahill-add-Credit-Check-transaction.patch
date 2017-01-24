@@ -1,0 +1,154 @@
+From 835dd3e040042190de7f437737bbf00110d75971 Mon Sep 17 00:00:00 2001
+From: Ryan Johnson <ryan.johnson@cs.utoronto.ca>
+Date: Thu, 20 Mar 2014 09:57:25 -0400
+Subject: [PATCH 10/15] Cahill: add Credit Check transaction
+
+---
+ .../benchmarks/tpcc_plus/TPCCWorker.java           |    1 +
+ .../tpcc_plus/procedures/CreditCheck.java          |  122 ++++++++++++++++++++
+ 2 files changed, 123 insertions(+)
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/CreditCheck.java
+
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCWorker.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCWorker.java
+index 8bbf237..e111744 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCWorker.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCWorker.java
+@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
+ import com.oltpbenchmark.api.Procedure.UserAbortException;
+ import com.oltpbenchmark.api.TransactionType;
+ import com.oltpbenchmark.api.Worker;
++import com.oltpbenchmark.benchmarks.tpcc_plus.procedures.CreditCheck;
+ import com.oltpbenchmark.benchmarks.tpcc_plus.procedures.Delivery;
+ import com.oltpbenchmark.benchmarks.tpcc_plus.procedures.NewOrder;
+ import com.oltpbenchmark.benchmarks.tpcc_plus.procedures.OrderStatus;
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/CreditCheck.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/CreditCheck.java
+new file mode 100644
+index 0000000..d7d9ca5
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/CreditCheck.java
+@@ -0,0 +1,122 @@
++package com.oltpbenchmark.benchmarks.tpcc_plus.procedures;
++
++import java.sql.Connection;
++import java.sql.PreparedStatement;
++import java.sql.ResultSet;
++import java.sql.SQLException;
++import java.sql.Timestamp;
++import java.util.ArrayList;
++import java.util.Random;
++
++import org.apache.log4j.Logger;
++
++import com.oltpbenchmark.api.SQLStmt;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCConstants;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCUtil;
++import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCWorker;
++import com.oltpbenchmark.benchmarks.tpcc_plus.pojo.Customer;
++
++public class CreditCheck extends TPCCProcedure {
++
++    private static final Logger LOG = Logger.getLogger(CreditCheck.class);
++
++    public SQLStmt crCheckGetCustSQL = new SQLStmt("SELECT C_BALANCE, C_CREDIT_LIM FROM " + TPCCConstants.TABLENAME_CUSTOMER
++                                                   + " WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?");
++    public SQLStmt crCheckGetBalanceSQL = new SQLStmt("SELECT SUM(OL_AMOUNT) as NEW_BALANCE FROM " + TPCCConstants.TABLENAME_ORDERLINE
++                                                      + ", "+ TPCCConstants.TABLENAME_OPENORDER + ", " + TPCCConstants.TABLENAME_NEWORDER
++                                                      + " WHERE OL_O_ID = O_ID and NO_O_ID = O_ID"
++                                                      + " AND O_W_ID = ? AND OL_W_ID = O_W_ID AND NO_W_ID = O_W_ID"
++                                                      + " AND O_D_ID = ? AND OL_D_ID = O_D_ID AND NO_D_ID = O_D_ID"
++                                                      + " AND O_C_ID = ?");
++    public SQLStmt crCheckUpdateCustSQL = new SQLStmt("UPDATE " + TPCCConstants.TABLENAME_CUSTOMER + " SET C_CREDIT = ?"
++                                                      + " WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?");
++
++    private PreparedStatement crCheckGetCust = null;
++    private PreparedStatement crCheckGetBalance = null;
++    private PreparedStatement crCheckUpdateCust = null;
++
++
++    public ResultSet run(Connection conn, Random gen,
++                         int terminalWarehouseID, int numWarehouses,
++                         int terminalDistrictLowerID, int terminalDistrictUpperID,
++                         TPCCWorker w) throws SQLException{
++
++
++        //initializing all prepared statements
++        crCheckGetCust = this.getPreparedStatement(conn, crCheckGetCustSQL);
++        crCheckGetBalance = this.getPreparedStatement(conn, crCheckGetBalanceSQL);
++        crCheckUpdateCust = this.getPreparedStatement(conn, crCheckUpdateCustSQL);
++
++        int districtID = TPCCUtil.randomNumber(terminalDistrictLowerID,terminalDistrictUpperID, gen);
++        int customerID = customerID = TPCCUtil.getCustomerID(gen);
++        creditCheckTransaction(terminalWarehouseID, districtID, customerID, conn, w);
++        return null;
++    }
++
++    private void creditCheckTransaction(int w_id, int d_id, int c_id,
++                                        Connection conn, TPCCWorker w) throws SQLException {
++        crCheckGetCust.setInt(1, w_id);
++        crCheckGetCust.setInt(2, d_id);
++        crCheckGetCust.setInt(3, c_id);
++        ResultSet rs = crCheckGetCust.executeQuery();
++        if (!rs.next()) {
++            throw new RuntimeException("No Customer for C_W_ID=" + w_id
++                                       + " C_D_ID=" + d_id + " C_ID=" + c_id);
++        }
++
++        double c_credit_lim = rs.getDouble("C_CREDIT_LIM");
++        double c_balance = rs.getDouble("C_BALANCE");
++        rs.close();
++        rs = null;
++
++        crCheckGetBalance.setInt(1, w_id);
++        crCheckGetBalance.setInt(2, d_id);
++        crCheckGetBalance.setInt(3, c_id);
++        rs = crCheckGetBalance.executeQuery();
++        if (!rs.next()) {
++            throw new RuntimeException("Unable to compute balance for Customer with C_W_ID=" + w_id
++                                       + " C_D_ID=" + d_id + " C_ID=" + c_id);
++        }
++
++        double new_balance = rs.getDouble("NEW_BALANCE");
++        rs.close();
++        rs = null;
++
++        String c_credit = (c_balance + new_balance > c_credit_lim)? "BC" : "GC";
++
++        crCheckUpdateCust.setString(1, c_credit);
++        crCheckUpdateCust.setInt(2, w_id);
++        crCheckUpdateCust.setInt(3, d_id);
++        crCheckUpdateCust.setInt(4, c_id);
++
++        int result = crCheckUpdateCust.executeUpdate();
++        if (result == 0)
++            throw new RuntimeException("Error in CRCHK Txn updating Customer"
++                                       + " C_W_ID=" + w_id + " C_D_ID=" + d_id + " C_ID=" + c_id);
++        conn.commit();
++
++        if(LOG.isTraceEnabled()) {
++            StringBuilder terminalMessage = new StringBuilder();
++            terminalMessage.append("\n+---------------------------- CREDIT-CHECK ----------------------------+");
++            terminalMessage.append("\n Warehouse: ");
++            terminalMessage.append(w_id);
++            terminalMessage.append("\n District: ");
++            terminalMessage.append(d_id);
++            terminalMessage.append("\n Customer: ");
++            terminalMessage.append(c_id);
++            terminalMessage.append("\n\nCustomer balance: ");
++            terminalMessage.append(c_balance);
++            terminalMessage.append("\nNew order balance: ");
++            terminalMessage.append(new_balance);
++            terminalMessage.append("\nCustomer credit limit: ");
++            terminalMessage.append(c_credit_lim);
++            terminalMessage.append("\n\nNew customer credit status: ");
++            terminalMessage.append(c_credit);
++            terminalMessage.append("\n+-----------------------------------------------------------------+\n\n");
++            LOG.trace(terminalMessage.toString());
++        }
++    }
++}
++
++
++
+-- 
+1.7.9.5
+

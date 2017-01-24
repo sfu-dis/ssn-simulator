@@ -1,0 +1,2249 @@
+From fa7e97df8200a695d115741f8f7c608be5ed5545 Mon Sep 17 00:00:00 2001
+From: Ryan Johnson <ryan.johnson@cs.utoronto.ca>
+Date: Tue, 25 Mar 2014 08:32:02 -0400
+Subject: [PATCH 12/15] Final touches to TPCC++
+
+---
+ config/plugin.xml                                  |    1 +
+ config/tpcc_plus_config_postgres.xml               |   14 +-
+ .../benchmarks/tpcc_plus/TPCCBenchmark.java        |    2 +-
+ .../benchmarks/tpcc_plus/TPCCLoader.java           |   14 +-
+ .../benchmarks/tpcc_plus/TPCCWorker.java           |    2 +-
+ .../benchmarks/tpcc_plus/jTPCCConfig.java          |    4 +-
+ .../benchmarks/tpcc_plus/procedures/Delivery.java  |   10 +-
+ .../benchmarks/tpcc_plus/tpcc-db2-ddl.sql          |  127 -------------------
+ .../benchmarks/tpcc_plus/tpcc-ddl.sql              |  127 -------------------
+ .../benchmarks/tpcc_plus/tpcc-dialects.xml         |   64 ----------
+ .../benchmarks/tpcc_plus/tpcc-mysql-ddl.sql        |  133 -------------------
+ .../benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql        |  134 --------------------
+ .../benchmarks/tpcc_plus/tpcc-oracle-ddl.sql       |  127 -------------------
+ .../benchmarks/tpcc_plus/tpcc-pg-ddl.sql           |  126 ------------------
+ .../benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql    |  131 -------------------
+ .../benchmarks/tpcc_plus/tpcc_plus-db2-ddl.sql     |  127 +++++++++++++++++++
+ .../benchmarks/tpcc_plus/tpcc_plus-ddl.sql         |  127 +++++++++++++++++++
+ .../benchmarks/tpcc_plus/tpcc_plus-dialects.xml    |   64 ++++++++++
+ .../benchmarks/tpcc_plus/tpcc_plus-mysql-ddl.sql   |  133 +++++++++++++++++++
+ .../benchmarks/tpcc_plus/tpcc_plus-nuodb-ddl.sql   |  134 ++++++++++++++++++++
+ .../benchmarks/tpcc_plus/tpcc_plus-oracle-ddl.sql  |  127 +++++++++++++++++++
+ .../tpcc_plus/tpcc_plus-postgres-ddl.sql           |  126 ++++++++++++++++++
+ .../tpcc_plus/tpcc_plus-sqlserver-ddl.sql          |  131 +++++++++++++++++++
+ 23 files changed, 997 insertions(+), 988 deletions(-)
+ delete mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-db2-ddl.sql
+ delete mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-ddl.sql
+ delete mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-dialects.xml
+ delete mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-mysql-ddl.sql
+ delete mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql
+ delete mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-oracle-ddl.sql
+ delete mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-pg-ddl.sql
+ delete mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-db2-ddl.sql
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-ddl.sql
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-dialects.xml
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-mysql-ddl.sql
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-nuodb-ddl.sql
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-oracle-ddl.sql
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-postgres-ddl.sql
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-sqlserver-ddl.sql
+
+diff --git a/config/plugin.xml b/config/plugin.xml
+index 0492761..00d9bc9 100644
+--- a/config/plugin.xml
++++ b/config/plugin.xml
+@@ -1,6 +1,7 @@
+ <?xml version="1.0"?>
+ <plugins>
+     <plugin name="tpcc">com.oltpbenchmark.benchmarks.tpcc.TPCCBenchmark</plugin>
++    <plugin name="tpcc_plus">com.oltpbenchmark.benchmarks.tpcc_plus.TPCCBenchmark</plugin>
+     <plugin name="tatp">com.oltpbenchmark.benchmarks.tatp.TATPBenchmark</plugin>
+     <plugin name="wikipedia">com.oltpbenchmark.benchmarks.wikipedia.WikipediaBenchmark</plugin>
+     <plugin name="resourcestresser">com.oltpbenchmark.benchmarks.resourcestresser.ResourceStresserBenchmark</plugin>
+diff --git a/config/tpcc_plus_config_postgres.xml b/config/tpcc_plus_config_postgres.xml
+index 63d8720..184d96f 100644
+--- a/config/tpcc_plus_config_postgres.xml
++++ b/config/tpcc_plus_config_postgres.xml
+@@ -2,21 +2,23 @@
+ <parameters>
+ 	
+     <!-- Connection details -->
+-    <dbtype>mysql</dbtype>
++    <dbtype>postgres</dbtype>
+     <driver>org.postgresql.Driver</driver>
+-    <DBUrl>jdbc:postgresql://localhost:5432/tpcc</DBUrl>
++    <DBUrl>jdbc:postgresql:tpcc</DBUrl>
++    <!--
+     <username>tpcc</username>
+     <password>tpcc</password>
+-    <isolation>TRANSACTION_READ_COMMITTED</isolation>
++    -->
++    <isolation>TRANSACTION_SERIALIZABLE</isolation>
+     
+     <!-- Scale factor is the number of warehouses in TPCC++ -->
+-    <scalefactor>2</scalefactor>
++    <scalefactor>1</scalefactor>
+     
+     <!-- The workload -->
+-    <terminals>2</terminals>
++    <terminals>4</terminals>
+     <works>
+         <work>
+-          <time>10</time>
++          <time>20</time>
+           <rate>10000</rate>
+           <ratelimited bench="tpcc_plus">true</ratelimited>
+           <weights>43,41,4,4,4,4</weights>
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCBenchmark.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCBenchmark.java
+index 65b3b23..6a289f0 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCBenchmark.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCBenchmark.java
+@@ -41,7 +41,7 @@ public class TPCCBenchmark extends BenchmarkModule {
+     private static final Logger LOG = Logger.getLogger(TPCCBenchmark.class);
+ 
+ 	public TPCCBenchmark(WorkloadConfiguration workConf) {
+-		super("tpcc", workConf, true);
++		super("tpcc_plus", workConf, true);
+ 	}
+ 
+ 	@Override
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java
+index ef70eed..495e1cb 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java
+@@ -301,13 +301,13 @@ public class TPCCLoader extends Loader{
+ 
+ 				if (outputFiles == false) {
+ 					whsePrepStmt.setLong(1, warehouse.w_id);
+-					whsePrepStmt.setDouble(3, warehouse.w_tax);
+-					whsePrepStmt.setString(4, warehouse.w_name);
+-					whsePrepStmt.setString(5, warehouse.w_street_1);
+-					whsePrepStmt.setString(6, warehouse.w_street_2);
+-					whsePrepStmt.setString(7, warehouse.w_city);
+-					whsePrepStmt.setString(8, warehouse.w_state);
+-					whsePrepStmt.setString(9, warehouse.w_zip);
++					whsePrepStmt.setDouble(2, warehouse.w_tax);
++					whsePrepStmt.setString(3, warehouse.w_name);
++					whsePrepStmt.setString(4, warehouse.w_street_1);
++					whsePrepStmt.setString(5, warehouse.w_street_2);
++					whsePrepStmt.setString(6, warehouse.w_city);
++					whsePrepStmt.setString(7, warehouse.w_state);
++					whsePrepStmt.setString(8, warehouse.w_zip);
+ 					whsePrepStmt.executeUpdate();
+ 				} else {
+ 					String str = "";
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCWorker.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCWorker.java
+index e111744..7ee0436 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCWorker.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCWorker.java
+@@ -97,7 +97,7 @@ public class TPCCWorker extends Worker {
+         	throw new RuntimeException("Bad transaction type = "+ nextTransaction);
+ 	    } catch (RuntimeException ex) {
+ 	        conn.rollback();
+-	        return (TransactionStatus.RETRY_DIFFERENT);
++                throw ex;
+ 	    }
+ 		transactionCount++;
+         conn.commit();
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/jTPCCConfig.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/jTPCCConfig.java
+index 9b073fa..c16412c 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/jTPCCConfig.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/jTPCCConfig.java
+@@ -36,12 +36,12 @@ public final class jTPCCConfig {
+ 
+ 	public static enum TransactionType {
+ 		INVALID, // Exists so the order is the same as the constants below
+-		NEW_ORDER, PAYMENT, ORDER_STATUS, DELIVERY, STOCK_LEVEL
++		NEW_ORDER, PAYMENT, ORDER_STATUS, DELIVERY, STOCK_LEVEL, CREDIT_CHECK,
+ 	}
+ 
+ 	// TODO: Remove these constants
+ 	public final static int NEW_ORDER = 1, PAYMENT = 2, ORDER_STATUS = 3,
+-			DELIVERY = 4, STOCK_LEVEL = 5;
++			DELIVERY = 4, STOCK_LEVEL = 5, CREDIT_CHECK = 6;
+ 
+ 	public final static String[] nameTokens = { "BAR", "OUGHT", "ABLE", "PRI",
+ 			"PRES", "ESE", "ANTI", "CALLY", "ATION", "EING" };
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Delivery.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Delivery.java
+index 798811e..315db1b 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Delivery.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Delivery.java
+@@ -7,6 +7,8 @@ import java.sql.SQLException;
+ import java.sql.Timestamp;
+ import java.util.Random;
+ 
++import org.apache.log4j.Logger;
++
+ import com.oltpbenchmark.api.SQLStmt;
+ import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCConstants;
+ import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCUtil;
+@@ -14,6 +16,7 @@ import com.oltpbenchmark.benchmarks.tpcc_plus.TPCCWorker;
+ 
+ public class Delivery extends TPCCProcedure {
+ 
++    private static final Logger LOG = Logger.getLogger(Delivery.class);
+ 
+ 	public SQLStmt delivGetOrderIdSQL = new SQLStmt("SELECT NO_O_ID FROM " + TPCCConstants.TABLENAME_NEWORDER + " WHERE NO_D_ID = ?"
+ 			+ " AND NO_W_ID = ? ORDER BY NO_O_ID ASC LIMIT 1");
+@@ -192,7 +195,6 @@ public class Delivery extends TPCCProcedure {
+                     terminalMessage.append("\n Carrier:   ");
+                     terminalMessage.append(o_carrier_id);
+                     terminalMessage.append("\n\n Delivered Orders\n");
+-                    int skippedDeliveries = 0;
+                     for (int i = 1; i <= 10; i++) {
+ 			if (orderIDs[i - 1] >= 0) {
+                             terminalMessage.append("  District ");
+@@ -206,12 +208,16 @@ public class Delivery extends TPCCProcedure {
+                             terminalMessage.append(i < 10 ? " " : "");
+                             terminalMessage.append(i);
+                             terminalMessage.append(": No orders to be delivered.\n");
+-                            skippedDeliveries++;
+ 			}
+                     }
+                     terminalMessage.append("+-----------------------------------------------------------------+\n\n");
+                 }
+                 
++                int skippedDeliveries = 0;
++                for (int i = 1; i <= 10; i++) {
++                    if (orderIDs[i - 1] < 0) 
++                        skippedDeliveries++;
++                }
+ 		return skippedDeliveries;
+ 	}
+ 
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-db2-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-db2-ddl.sql
+deleted file mode 100644
+index e0f1e3b..0000000
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-db2-ddl.sql
++++ /dev/null
+@@ -1,127 +0,0 @@
+---DECLARE CONTINUE HANDLER FOR NOT FOUND SET at_end = 1 end;
+---CONNECT TO TPCC USER db2user USING db2;
+-
+---DROP TABLE customer;
+-CREATE TABLE customer (
+-  c_w_id int NOT NULL,
+-  c_d_id int NOT NULL,
+-  c_id int NOT NULL,
+-  c_discount decimal(4,4) NOT NULL,
+-  c_credit char(2) NOT NULL,
+-  c_last varchar(16) NOT NULL,
+-  c_first varchar(16) NOT NULL,
+-  c_credit_lim decimal(12,2) NOT NULL,
+-  c_balance decimal(12,2) NOT NULL,
+-  c_ytd_payment float NOT NULL,
+-  c_payment_cnt int NOT NULL,
+-  c_delivery_cnt int NOT NULL,
+-  c_street_1 varchar(20) NOT NULL,
+-  c_street_2 varchar(20) NOT NULL,
+-  c_city varchar(20) NOT NULL,
+-  c_state char(2) NOT NULL,
+-  c_zip char(9) NOT NULL,
+-  c_phone char(16) NOT NULL,
+-  c_since timestamp NOT NULL,
+-  c_middle char(2) NOT NULL,
+-  c_data varchar(500) NOT NULL,
+-  PRIMARY KEY (c_w_id,c_d_id,c_id)
+-);
+-CREATE INDEX IDX_CUSTOMER_NAME ON customer (c_w_id,c_d_id,c_last,c_first);
+-
+---DROP TABLE district;
+-CREATE TABLE district (
+-  d_w_id int NOT NULL,
+-  d_id int NOT NULL,
+-  d_ytd decimal(12,2) NOT NULL,
+-  d_tax decimal(4,4) NOT NULL,
+-  d_next_o_id int NOT NULL,
+-  d_name varchar(10) NOT NULL,
+-  d_street_1 varchar(20) NOT NULL,
+-  d_street_2 varchar(20) NOT NULL,
+-  d_city varchar(20) NOT NULL,
+-  d_state char(2) NOT NULL,
+-  d_zip char(9) NOT NULL,
+-  PRIMARY KEY (d_w_id,d_id)
+-);
+-
+---DROP TABLE item;
+-CREATE TABLE item (
+-  i_id int NOT NULL,
+-  i_name varchar(24) NOT NULL,
+-  i_price decimal(5,2) NOT NULL,
+-  i_data varchar(50) NOT NULL,
+-  i_im_id int NOT NULL,
+-  PRIMARY KEY (i_id)
+-);
+-
+---DROP TABLE new_order;
+-CREATE TABLE new_order (
+-  no_w_id int NOT NULL,
+-  no_d_id int NOT NULL,
+-  no_o_id int NOT NULL,
+-  PRIMARY KEY (no_w_id,no_d_id,no_o_id)
+-);
+-
+---DROP TABLE oorder;
+-CREATE TABLE oorder (
+-  o_w_id int NOT NULL,
+-  o_d_id int NOT NULL,
+-  o_id int NOT NULL,
+-  o_c_id int NOT NULL,
+-  o_carrier_id int DEFAULT NULL,
+-  o_ol_cnt decimal(2,0) NOT NULL,
+-  o_all_local decimal(1,0) NOT NULL,
+-  o_entry_d timestamp NOT NULL,
+-  PRIMARY KEY (o_w_id,o_d_id,o_id),
+-  UNIQUE (o_w_id,o_d_id,o_c_id,o_id)
+-);
+-
+---DROP TABLE order_line;
+-CREATE TABLE order_line (
+-  ol_w_id int NOT NULL,
+-  ol_d_id int NOT NULL,
+-  ol_o_id int NOT NULL,
+-  ol_number int NOT NULL,
+-  ol_i_id int NOT NULL,
+-  ol_delivery_d timestamp,
+-  ol_amount decimal(6,2) NOT NULL,
+-  ol_supply_w_id int NOT NULL,
+-  ol_quantity decimal(2,0) NOT NULL,
+-  ol_dist_info char(24) NOT NULL,
+-  PRIMARY KEY (ol_w_id,ol_d_id,ol_o_id,ol_number)
+-);
+-
+---DROP TABLE stock;
+-CREATE TABLE stock (
+-  s_w_id int NOT NULL,
+-  s_i_id int NOT NULL,
+-  s_quantity decimal(4,0) NOT NULL,
+-  s_ytd decimal(8,2) NOT NULL,
+-  s_order_cnt int NOT NULL,
+-  s_remote_cnt int NOT NULL,
+-  s_data varchar(50) NOT NULL,
+-  s_dist_01 char(24) NOT NULL,
+-  s_dist_02 char(24) NOT NULL,
+-  s_dist_03 char(24) NOT NULL,
+-  s_dist_04 char(24) NOT NULL,
+-  s_dist_05 char(24) NOT NULL,
+-  s_dist_06 char(24) NOT NULL,
+-  s_dist_07 char(24) NOT NULL,
+-  s_dist_08 char(24) NOT NULL,
+-  s_dist_09 char(24) NOT NULL,
+-  s_dist_10 char(24) NOT NULL,
+-  PRIMARY KEY (s_w_id,s_i_id)
+-);
+-
+---DROP TABLE warehouse;
+-CREATE TABLE warehouse (
+-  w_id int NOT NULL,
+-  w_tax decimal(4,4) NOT NULL,
+-  w_name varchar(10) NOT NULL,
+-  w_street_1 varchar(20) NOT NULL,
+-  w_street_2 varchar(20) NOT NULL,
+-  w_city varchar(20) NOT NULL,
+-  w_state char(2) NOT NULL,
+-  w_zip char(9) NOT NULL,
+-  PRIMARY KEY (w_id)
+-);
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-ddl.sql
+deleted file mode 100644
+index 4d7f562..0000000
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-ddl.sql
++++ /dev/null
+@@ -1,127 +0,0 @@
+--- TODO: C_SINCE ON UPDATE CURRENT_TIMESTAMP,
+-DROP TABLE IF EXISTS CUSTOMER;
+-CREATE TABLE CUSTOMER (
+-  C_W_ID INT NOT NULL,
+-  C_D_ID INT NOT NULL,
+-  C_ID INT NOT NULL,
+-  C_DISCOUNT DECIMAL(4,4) NOT NULL,
+-  C_CREDIT CHAR(2) NOT NULL,
+-  C_LAST VARCHAR(16) NOT NULL,
+-  C_FIRST VARCHAR(16) NOT NULL,
+-  C_CREDIT_LIM DECIMAL(12,2) NOT NULL,
+-  C_BALANCE DECIMAL(12,2) NOT NULL,
+-  C_YTD_PAYMENT FLOAT NOT NULL,
+-  C_PAYMENT_CNT INT NOT NULL,
+-  C_DELIVERY_CNT INT NOT NULL,
+-  C_STREET_1 VARCHAR(20) NOT NULL,
+-  C_STREET_2 VARCHAR(20) NOT NULL,
+-  C_CITY VARCHAR(20) NOT NULL,
+-  C_STATE CHAR(2) NOT NULL,
+-  C_ZIP CHAR(9) NOT NULL,
+-  C_PHONE CHAR(16) NOT NULL,
+-  C_SINCE TIMESTAMP NOT NULL,
+-  C_MIDDLE CHAR(2) NOT NULL,
+-  C_DATA VARCHAR(500) NOT NULL,
+-  PRIMARY KEY (C_W_ID,C_D_ID,C_ID)
+-);
+-CREATE INDEX IDX_CUSTOMER_NAME ON CUSTOMER (C_W_ID,C_D_ID,C_LAST,C_FIRST);
+-
+-DROP TABLE IF EXISTS DISTRICT;
+-CREATE TABLE DISTRICT (
+-  D_W_ID INT NOT NULL,
+-  D_ID INT NOT NULL,
+-  D_YTD DECIMAL(12,2) NOT NULL,
+-  D_TAX DECIMAL(4,4) NOT NULL,
+-  D_NEXT_O_ID INT NOT NULL,
+-  D_NAME VARCHAR(10) NOT NULL,
+-  D_STREET_1 VARCHAR(20) NOT NULL,
+-  D_STREET_2 VARCHAR(20) NOT NULL,
+-  D_CITY VARCHAR(20) NOT NULL,
+-  D_STATE CHAR(2) NOT NULL,
+-  D_ZIP CHAR(9) NOT NULL,
+-  PRIMARY KEY (D_W_ID,D_ID)
+-);
+-
+-DROP TABLE IF EXISTS ITEM;
+-CREATE TABLE ITEM (
+-  I_ID INT NOT NULL,
+-  I_NAME VARCHAR(24) NOT NULL,
+-  I_PRICE DECIMAL(5,2) NOT NULL,
+-  I_DATA VARCHAR(50) NOT NULL,
+-  I_IM_ID INT NOT NULL,
+-  PRIMARY KEY (I_ID)
+-);
+-
+-DROP TABLE IF EXISTS NEW_ORDER;
+-CREATE TABLE NEW_ORDER (
+-  NO_W_ID INT NOT NULL,
+-  NO_D_ID INT NOT NULL,
+-  NO_O_ID INT NOT NULL,
+-  PRIMARY KEY (NO_W_ID,NO_D_ID,NO_O_ID)
+-);
+-
+--- TODO: O_ENTRY_D  ON UPDATE CURRENT_TIMESTAMP
+-DROP TABLE IF EXISTS OORDER;
+-CREATE TABLE OORDER (
+-  O_W_ID INT NOT NULL,
+-  O_D_ID INT NOT NULL,
+-  O_ID INT NOT NULL,
+-  O_C_ID INT NOT NULL,
+-  O_CARRIER_ID INT DEFAULT NULL,
+-  O_OL_CNT DECIMAL(2,0) NOT NULL,
+-  O_ALL_LOCAL DECIMAL(1,0) NOT NULL,
+-  O_ENTRY_D TIMESTAMP NOT NULL,
+-  PRIMARY KEY (O_W_ID,O_D_ID,O_ID),
+-  UNIQUE (O_W_ID,O_D_ID,O_C_ID,O_ID)
+-);
+-
+-DROP TABLE IF EXISTS ORDER_LINE;
+-CREATE TABLE ORDER_LINE (
+-  OL_W_ID INT NOT NULL,
+-  OL_D_ID INT NOT NULL,
+-  OL_O_ID INT NOT NULL,
+-  OL_NUMBER INT NOT NULL,
+-  OL_I_ID INT NOT NULL,
+-  OL_DELIVERY_D TIMESTAMP,
+-  OL_AMOUNT DECIMAL(6,2) NOT NULL,
+-  OL_SUPPLY_W_ID INT NOT NULL,
+-  OL_QUANTITY DECIMAL(2,0) NOT NULL,
+-  OL_DIST_INFO CHAR(24) NOT NULL,
+-  PRIMARY KEY (OL_W_ID,OL_D_ID,OL_O_ID,OL_NUMBER)
+-);
+-
+-DROP TABLE IF EXISTS STOCK;
+-CREATE TABLE STOCK (
+-  S_W_ID INT NOT NULL,
+-  S_I_ID INT NOT NULL,
+-  S_QUANTITY DECIMAL(4,0) NOT NULL,
+-  S_YTD DECIMAL(8,2) NOT NULL,
+-  S_ORDER_CNT INT NOT NULL,
+-  S_REMOTE_CNT INT NOT NULL,
+-  S_DATA VARCHAR(50) NOT NULL,
+-  S_DIST_01 CHAR(24) NOT NULL,
+-  S_DIST_02 CHAR(24) NOT NULL,
+-  S_DIST_03 CHAR(24) NOT NULL,
+-  S_DIST_04 CHAR(24) NOT NULL,
+-  S_DIST_05 CHAR(24) NOT NULL,
+-  S_DIST_06 CHAR(24) NOT NULL,
+-  S_DIST_07 CHAR(24) NOT NULL,
+-  S_DIST_08 CHAR(24) NOT NULL,
+-  S_DIST_09 CHAR(24) NOT NULL,
+-  S_DIST_10 CHAR(24) NOT NULL,
+-  PRIMARY KEY (S_W_ID,S_I_ID)
+-);
+-
+-DROP TABLE IF EXISTS WAREHOUSE;
+-CREATE TABLE WAREHOUSE (
+-  W_ID INT NOT NULL,
+-  W_TAX DECIMAL(4,4) NOT NULL,
+-  W_NAME VARCHAR(10) NOT NULL,
+-  W_STREET_1 VARCHAR(20) NOT NULL,
+-  W_STREET_2 VARCHAR(20) NOT NULL,
+-  W_CITY VARCHAR(20) NOT NULL,
+-  W_STATE CHAR(2) NOT NULL,
+-  W_ZIP CHAR(9) NOT NULL,
+-  PRIMARY KEY (W_ID)
+-);
+-
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-dialects.xml b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-dialects.xml
+deleted file mode 100644
+index c351504..0000000
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-dialects.xml
++++ /dev/null
+@@ -1,64 +0,0 @@
+-<?xml version="1.0"?>
+-<dialects>
+-    <dialect type="ORACLE">
+-        <procedure name="Delivery">
+-            <statement name="delivGetOrderIdSQL">
+-                SELECT NO_O_ID
+-                    FROM NEW_ORDER
+-                    WHERE NO_D_ID = ? AND NO_W_ID = ? AND ROWNUM = 1 ORDER BY NO_O_ID ASC
+-            </statement>
+-        </procedure>
+-        <procedure name="OrderStatus">
+-            <statement name="ordStatGetNewestOrdSQL">
+-                SELECT O_ID, O_CARRIER_ID, O_ENTRY_D
+-                        FROM OORDER
+-                        WHERE O_W_ID = ? AND O_D_ID = ? AND O_C_ID = ? AND ROWNUM =1 ORDER BY O_ID DESC
+-            </statement>
+-        </procedure>
+-    </dialect>
+-    <dialect type="DB2">
+-        <procedure name="Delivery">
+-            <statement name="delivGetOrderIdSQL">
+-                SELECT NO_O_ID
+-                    FROM NEW_ORDER
+-                    WHERE NO_D_ID = ? AND NO_W_ID = ? ORDER BY NO_O_ID ASC FETCH FIRST 1 ROWS ONLY
+-            </statement>
+-        </procedure>
+-        <procedure name="OrderStatus">
+-            <statement name="ordStatGetNewestOrdSQL">
+-                SELECT O_ID, O_CARRIER_ID, O_ENTRY_D
+-                        FROM OORDER
+-                        WHERE O_W_ID = ? AND O_D_ID = ? AND O_C_ID = ? ORDER BY O_ID DESC FETCH FIRST 1 ROWS ONLY
+-            </statement>
+-        </procedure>
+-    </dialect>
+-    <dialect type="SQLSERVER">
+-        <procedure name="Delivery">
+-            <statement name="delivGetOrderIdSQL">
+-                SELECT TOP 1 NO_O_ID
+-                        FROM NEW_ORDER
+-                        WHERE NO_D_ID = ? AND NO_W_ID = ? ORDER BY NO_O_ID ASC
+-            </statement>
+-        </procedure>
+-        <procedure name="NewOrder">
+-            <statement name="stmtGetDistSQL">
+-                SELECT D_NEXT_O_ID,D_TAX
+-                        FROM DISTRICT
+-                        WHERE D_W_ID = ? AND D_ID = ?
+-            </statement>
+-            <statement name="stmtGetStockSQL">
+-                SELECT S_QUANTITY, S_DATA, S_DIST_01, S_DIST_02, S_DIST_03, S_DIST_04, S_DIST_05,
+-                    S_DIST_06, S_DIST_07, S_DIST_08, S_DIST_09, S_DIST_10
+-                    FROM STOCK
+-                    WHERE S_I_ID = ? AND S_W_ID = ?
+-            </statement>
+-        </procedure>
+-        <procedure name="OrderStatus">
+-            <statement name="ordStatGetNewestOrdSQL">
+-                SELECT TOP 1 O_ID, O_CARRIER_ID, O_ENTRY_D
+-                        FROM OORDER
+-                        WHERE O_W_ID = ? AND O_D_ID = ? AND O_C_ID = ? ORDER BY O_ID DESC
+-            </statement>
+-        </procedure>
+-    </dialect>
+-</dialects>
+\ No newline at end of file
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-mysql-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-mysql-ddl.sql
+deleted file mode 100644
+index 02e33db..0000000
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-mysql-ddl.sql
++++ /dev/null
+@@ -1,133 +0,0 @@
+--- TODO: C_SINCE ON UPDATE CURRENT_TIMESTAMP,
+-DROP TABLE IF EXISTS CUSTOMER;
+-DROP TABLE IF EXISTS DISTRICT;
+-DROP TABLE IF EXISTS ITEM;
+-DROP TABLE IF EXISTS NEW_ORDER;
+-DROP TABLE IF EXISTS OORDER;
+-DROP TABLE IF EXISTS ORDER_LINE;
+-DROP TABLE IF EXISTS STOCK;
+-DROP TABLE IF EXISTS WAREHOUSE;
+-
+-CREATE TABLE CUSTOMER (
+-  C_W_ID INT NOT NULL,
+-  C_D_ID INT NOT NULL,
+-  C_ID INT NOT NULL,
+-  C_DISCOUNT DECIMAL(4,4) NOT NULL,
+-  C_CREDIT CHAR(2) NOT NULL,
+-  C_LAST VARCHAR(16) NOT NULL,
+-  C_FIRST VARCHAR(16) NOT NULL,
+-  C_CREDIT_LIM DECIMAL(12,2) NOT NULL,
+-  C_BALANCE DECIMAL(12,2) NOT NULL,
+-  C_YTD_PAYMENT FLOAT NOT NULL,
+-  C_PAYMENT_CNT INT NOT NULL,
+-  C_DELIVERY_CNT INT NOT NULL,
+-  C_STREET_1 VARCHAR(20) NOT NULL,
+-  C_STREET_2 VARCHAR(20) NOT NULL,
+-  C_CITY VARCHAR(20) NOT NULL,
+-  C_STATE CHAR(2) NOT NULL,
+-  C_ZIP CHAR(9) NOT NULL,
+-  C_PHONE CHAR(16) NOT NULL,
+-  C_SINCE TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+-  C_MIDDLE CHAR(2) NOT NULL,
+-  C_DATA VARCHAR(500) NOT NULL,
+-  PRIMARY KEY (C_W_ID,C_D_ID,C_ID)
+-);
+-
+-
+-CREATE TABLE DISTRICT (
+-  D_W_ID INT NOT NULL,
+-  D_ID INT NOT NULL,
+-  D_YTD DECIMAL(12,2) NOT NULL,
+-  D_TAX DECIMAL(4,4) NOT NULL,
+-  D_NEXT_O_ID INT NOT NULL,
+-  D_NAME VARCHAR(10) NOT NULL,
+-  D_STREET_1 VARCHAR(20) NOT NULL,
+-  D_STREET_2 VARCHAR(20) NOT NULL,
+-  D_CITY VARCHAR(20) NOT NULL,
+-  D_STATE CHAR(2) NOT NULL,
+-  D_ZIP CHAR(9) NOT NULL,
+-  PRIMARY KEY (D_W_ID,D_ID)
+-);
+-
+-CREATE TABLE ITEM (
+-  I_ID INT NOT NULL,
+-  I_NAME VARCHAR(24) NOT NULL,
+-  I_PRICE DECIMAL(5,2) NOT NULL,
+-  I_DATA VARCHAR(50) NOT NULL,
+-  I_IM_ID INT NOT NULL,
+-  PRIMARY KEY (I_ID)
+-);
+-
+-
+-CREATE TABLE NEW_ORDER (
+-  NO_W_ID INT NOT NULL,
+-  NO_D_ID INT NOT NULL,
+-  NO_O_ID INT NOT NULL,
+-  PRIMARY KEY (NO_W_ID,NO_D_ID,NO_O_ID)
+-);
+-
+--- TODO: O_ENTRY_D  ON UPDATE CURRENT_TIMESTAMP
+-
+-CREATE TABLE OORDER (
+-  O_W_ID INT NOT NULL,
+-  O_D_ID INT NOT NULL,
+-  O_ID INT NOT NULL,
+-  O_C_ID INT NOT NULL,
+-  O_CARRIER_ID INT DEFAULT NULL,
+-  O_OL_CNT DECIMAL(2,0) NOT NULL,
+-  O_ALL_LOCAL DECIMAL(1,0) NOT NULL,
+-  O_ENTRY_D TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+-  PRIMARY KEY (O_W_ID,O_D_ID,O_ID),
+-  UNIQUE (O_W_ID,O_D_ID,O_C_ID,O_ID)
+-);
+-
+-
+-CREATE TABLE ORDER_LINE (
+-  OL_W_ID INT NOT NULL,
+-  OL_D_ID INT NOT NULL,
+-  OL_O_ID INT NOT NULL,
+-  OL_NUMBER INT NOT NULL,
+-  OL_I_ID INT NOT NULL,
+-  OL_DELIVERY_D TIMESTAMP NULL DEFAULT NULL,
+-  OL_AMOUNT DECIMAL(6,2) NOT NULL,
+-  OL_SUPPLY_W_ID INT NOT NULL,
+-  OL_QUANTITY DECIMAL(2,0) NOT NULL,
+-  OL_DIST_INFO CHAR(24) NOT NULL,
+-  PRIMARY KEY (OL_W_ID,OL_D_ID,OL_O_ID,OL_NUMBER)
+-);
+-
+-CREATE TABLE STOCK (
+-  S_W_ID INT NOT NULL,
+-  S_I_ID INT NOT NULL,
+-  S_QUANTITY DECIMAL(4,0) NOT NULL,
+-  S_YTD DECIMAL(8,2) NOT NULL,
+-  S_ORDER_CNT INT NOT NULL,
+-  S_REMOTE_CNT INT NOT NULL,
+-  S_DATA VARCHAR(50) NOT NULL,
+-  S_DIST_01 CHAR(24) NOT NULL,
+-  S_DIST_02 CHAR(24) NOT NULL,
+-  S_DIST_03 CHAR(24) NOT NULL,
+-  S_DIST_04 CHAR(24) NOT NULL,
+-  S_DIST_05 CHAR(24) NOT NULL,
+-  S_DIST_06 CHAR(24) NOT NULL,
+-  S_DIST_07 CHAR(24) NOT NULL,
+-  S_DIST_08 CHAR(24) NOT NULL,
+-  S_DIST_09 CHAR(24) NOT NULL,
+-  S_DIST_10 CHAR(24) NOT NULL,
+-  PRIMARY KEY (S_W_ID,S_I_ID)
+-);
+-
+-CREATE TABLE WAREHOUSE (
+-  W_ID INT NOT NULL,
+-  W_TAX DECIMAL(4,4) NOT NULL,
+-  W_NAME VARCHAR(10) NOT NULL,
+-  W_STREET_1 VARCHAR(20) NOT NULL,
+-  W_STREET_2 VARCHAR(20) NOT NULL,
+-  W_CITY VARCHAR(20) NOT NULL,
+-  W_STATE CHAR(2) NOT NULL,
+-  W_ZIP CHAR(9) NOT NULL,
+-  PRIMARY KEY (W_ID)
+-);
+-
+--- INDEXES
+-CREATE INDEX IDX_CUSTOMER_NAME ON CUSTOMER (C_W_ID,C_D_ID,C_LAST,C_FIRST);
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql
+deleted file mode 100644
+index ab7f5a7..0000000
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql
++++ /dev/null
+@@ -1,134 +0,0 @@
+--- TODO: C_SINCE ON UPDATE CURRENT_TIMESTAMP,
+-DROP TABLE IF EXISTS CUSTOMER;
+-DROP TABLE IF EXISTS DISTRICT;
+-DROP TABLE IF EXISTS ITEM;
+-DROP TABLE IF EXISTS NEW_ORDER;
+-DROP TABLE IF EXISTS OORDER;
+-DROP TABLE IF EXISTS ORDER_LINE;
+-DROP TABLE IF EXISTS STOCK;
+-DROP TABLE IF EXISTS WAREHOUSE;
+-
+-CREATE TABLE CUSTOMER (
+-  C_W_ID INT NOT NULL,
+-  C_D_ID INT NOT NULL,
+-  C_ID INT NOT NULL,
+-  C_DISCOUNT DECIMAL(4,4) NOT NULL,
+-  C_CREDIT STRING NOT NULL,
+-  C_LAST STRING NOT NULL,
+-  C_FIRST STRING NOT NULL,
+-  C_CREDIT_LIM DECIMAL(12,2) NOT NULL,
+-  C_BALANCE DECIMAL(12,2) NOT NULL,
+-  C_YTD_PAYMENT FLOAT NOT NULL,
+-  C_PAYMENT_CNT INT NOT NULL,
+-  C_DELIVERY_CNT INT NOT NULL,
+-  C_STREET_1 STRING NOT NULL,
+-  C_STREET_2 STRING NOT NULL,
+-  C_CITY STRING NOT NULL,
+-  C_STATE STRING NOT NULL,
+-  C_ZIP STRING NOT NULL,
+-  C_PHONE STRING NOT NULL,
+-  C_SINCE TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+-  C_MIDDLE STRING NOT NULL,
+-  C_DATA STRING NOT NULL,
+-  PRIMARY KEY (C_W_ID,C_D_ID,C_ID)
+-);
+-
+-
+-CREATE TABLE DISTRICT (
+-  D_W_ID INT NOT NULL,
+-  D_ID INT NOT NULL,
+-  D_YTD DECIMAL(12,2) NOT NULL,
+-  D_TAX DECIMAL(4,4) NOT NULL,
+-  D_NEXT_O_ID INT NOT NULL,
+-  D_NAME STRING NOT NULL,
+-  D_STREET_1 STRING NOT NULL,
+-  D_STREET_2 STRING NOT NULL,
+-  D_CITY STRING NOT NULL,
+-  D_STATE STRING NOT NULL,
+-  D_ZIP STRING NOT NULL,
+-  PRIMARY KEY (D_W_ID,D_ID)
+-);
+-
+-
+-CREATE TABLE ITEM (
+-  I_ID INT NOT NULL,
+-  I_NAME VARCHAR(24) NOT NULL,
+-  I_PRICE DECIMAL(5,2) NOT NULL,
+-  I_DATA VARCHAR(50) NOT NULL,
+-  I_IM_ID INT NOT NULL,
+-  PRIMARY KEY (I_ID)
+-);
+-
+-
+-CREATE TABLE NEW_ORDER (
+-  NO_W_ID INT NOT NULL,
+-  NO_D_ID INT NOT NULL,
+-  NO_O_ID INT NOT NULL,
+-  PRIMARY KEY (NO_W_ID,NO_D_ID,NO_O_ID)
+-);
+-
+--- TODO: O_ENTRY_D  ON UPDATE CURRENT_TIMESTAMP
+-
+-CREATE TABLE OORDER (
+-  O_W_ID INT NOT NULL,
+-  O_D_ID INT NOT NULL,
+-  O_ID INT NOT NULL,
+-  O_C_ID INT NOT NULL,
+-  O_CARRIER_ID INT DEFAULT NULL,
+-  O_OL_CNT DECIMAL(2,0) NOT NULL,
+-  O_ALL_LOCAL DECIMAL(1,0) NOT NULL,
+-  O_ENTRY_D TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+-  PRIMARY KEY (O_W_ID,O_D_ID,O_ID),
+-  UNIQUE (O_W_ID,O_D_ID,O_C_ID,O_ID)
+-);
+-
+-
+-CREATE TABLE ORDER_LINE (
+-  OL_W_ID INT NOT NULL,
+-  OL_D_ID INT NOT NULL,
+-  OL_O_ID INT NOT NULL,
+-  OL_NUMBER INT NOT NULL,
+-  OL_I_ID INT NOT NULL,
+-  OL_DELIVERY_D TIMESTAMP NULL DEFAULT NULL,
+-  OL_AMOUNT DECIMAL(6,2) NOT NULL,
+-  OL_SUPPLY_W_ID INT NOT NULL,
+-  OL_QUANTITY DECIMAL(2,0) NOT NULL,
+-  OL_DIST_INFO STRING NOT NULL,
+-  PRIMARY KEY (OL_W_ID,OL_D_ID,OL_O_ID,OL_NUMBER)
+-);
+-
+-CREATE TABLE STOCK (
+-  S_W_ID INT NOT NULL,
+-  S_I_ID INT NOT NULL,
+-  S_QUANTITY DECIMAL(4,0) NOT NULL,
+-  S_YTD DECIMAL(8,2) NOT NULL,
+-  S_ORDER_CNT INT NOT NULL,
+-  S_REMOTE_CNT INT NOT NULL,
+-  S_DATA STRING NOT NULL,
+-  S_DIST_01 STRING NOT NULL,
+-  S_DIST_02 STRING NOT NULL,
+-  S_DIST_03 STRING NOT NULL,
+-  S_DIST_04 STRING NOT NULL,
+-  S_DIST_05 STRING NOT NULL,
+-  S_DIST_06 STRING NOT NULL,
+-  S_DIST_07 STRING NOT NULL,
+-  S_DIST_08 STRING NOT NULL,
+-  S_DIST_09 STRING NOT NULL,
+-  S_DIST_10 STRING NOT NULL,
+-  PRIMARY KEY (S_W_ID,S_I_ID)
+-);
+-
+-CREATE TABLE WAREHOUSE (
+-  W_ID INT NOT NULL,
+-  W_TAX DECIMAL(4,4) NOT NULL,
+-  W_NAME STRING NOT NULL,
+-  W_STREET_1 STRING NOT NULL,
+-  W_STREET_2 STRING NOT NULL,
+-  W_CITY STRING NOT NULL,
+-  W_STATE STRING NOT NULL,
+-  W_ZIP STRING NOT NULL,
+-  PRIMARY KEY (W_ID)
+-);
+-
+--- INDEXES
+-CREATE INDEX IDX_CUSTOMER_NAME ON CUSTOMER (C_W_ID,C_D_ID,C_LAST,C_FIRST);
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-oracle-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-oracle-ddl.sql
+deleted file mode 100644
+index fd5e418..0000000
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-oracle-ddl.sql
++++ /dev/null
+@@ -1,127 +0,0 @@
+-BEGIN EXECUTE IMMEDIATE 'DROP TABLE ORDER_LINE CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
+-BEGIN EXECUTE IMMEDIATE 'DROP TABLE STOCK CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
+-BEGIN EXECUTE IMMEDIATE 'DROP TABLE ITEM CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
+-BEGIN EXECUTE IMMEDIATE 'DROP TABLE NEW_ORDER CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
+-BEGIN EXECUTE IMMEDIATE 'DROP TABLE OORDER CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
+-BEGIN EXECUTE IMMEDIATE 'DROP TABLE CUSTOMER CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
+-BEGIN EXECUTE IMMEDIATE 'DROP TABLE DISTRICT CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
+-BEGIN EXECUTE IMMEDIATE 'DROP TABLE WAREHOUSE CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
+-
+-
+-CREATE TABLE CUSTOMER (
+-  C_W_ID NUMBER NOT NULL,
+-  C_D_ID NUMBER NOT NULL,
+-  C_ID NUMBER NOT NULL,
+-  C_DISCOUNT NUMBER(4,4) NOT NULL,
+-  C_CREDIT CHAR(2) NOT NULL,
+-  C_LAST VARCHAR2(16) NOT NULL,
+-  C_FIRST VARCHAR2(16) NOT NULL,
+-  C_CREDIT_LIM NUMBER(12,2) NOT NULL,
+-  C_BALANCE NUMBER(12,2) NOT NULL,
+-  C_YTD_PAYMENT FLOAT NOT NULL,
+-  C_PAYMENT_CNT NUMBER NOT NULL,
+-  C_DELIVERY_CNT NUMBER NOT NULL,
+-  C_STREET_1 VARCHAR2(20) NOT NULL,
+-  C_STREET_2 VARCHAR2(20) NOT NULL,
+-  C_CITY VARCHAR2(20) NOT NULL,
+-  C_STATE CHAR(2) NOT NULL,
+-  C_ZIP CHAR(9) NOT NULL,
+-  C_PHONE CHAR(16) NOT NULL,
+-  C_SINCE DATE NOT NULL,
+-  C_MIDDLE CHAR(2) NOT NULL,
+-  C_DATA VARCHAR2(500) NOT NULL,
+-  PRIMARY KEY (C_W_ID,C_D_ID,C_ID)
+-);
+-CREATE INDEX IDX_CUSTOMER_NAME ON CUSTOMER (C_W_ID,C_D_ID,C_LAST,C_FIRST);
+-
+-CREATE TABLE DISTRICT (
+-  D_W_ID NUMBER NOT NULL,
+-  D_ID NUMBER NOT NULL,
+-  D_YTD NUMBER(12,2) NOT NULL,
+-  D_TAX NUMBER(4,4) NOT NULL,
+-  D_NEXT_O_ID NUMBER NOT NULL,
+-  D_NAME VARCHAR2(10) NOT NULL,
+-  D_STREET_1 VARCHAR2(20) NOT NULL,
+-  D_STREET_2 VARCHAR2(20) NOT NULL,
+-  D_CITY VARCHAR2(20) NOT NULL,
+-  D_STATE CHAR(2) NOT NULL,
+-  D_ZIP CHAR(9) NOT NULL,
+-  PRIMARY KEY (D_W_ID,D_ID)
+-);
+-
+-CREATE TABLE ITEM (
+-  I_ID NUMBER NOT NULL,
+-  I_NAME VARCHAR2(24) NOT NULL,
+-  I_PRICE NUMBER(5,2) NOT NULL,
+-  I_DATA VARCHAR2(50) NOT NULL,
+-  I_IM_ID NUMBER NOT NULL,
+-  PRIMARY KEY (I_ID)
+-);
+-
+-CREATE TABLE NEW_ORDER (
+-  NO_W_ID NUMBER NOT NULL,
+-  NO_D_ID NUMBER NOT NULL,
+-  NO_O_ID NUMBER NOT NULL,
+-  PRIMARY KEY (NO_W_ID,NO_D_ID,NO_O_ID)
+-);
+-
+-CREATE TABLE OORDER (
+-  O_W_ID NUMBER NOT NULL,
+-  O_D_ID NUMBER NOT NULL,
+-  O_ID NUMBER NOT NULL,
+-  O_C_ID NUMBER NOT NULL,
+-  O_CARRIER_ID NUMBER DEFAULT NULL,
+-  O_OL_CNT NUMBER(2,0) NOT NULL,
+-  O_ALL_LOCAL NUMBER(1,0) NOT NULL,
+-  O_ENTRY_D DATE NOT NULL,
+-  PRIMARY KEY (O_W_ID,O_D_ID,O_ID),
+-  UNIQUE (O_W_ID,O_D_ID,O_C_ID,O_ID)
+-);
+-
+-CREATE TABLE ORDER_LINE (
+-  OL_W_ID NUMBER NOT NULL,
+-  OL_D_ID NUMBER NOT NULL,
+-  OL_O_ID NUMBER NOT NULL,
+-  OL_NUMBER NUMBER NOT NULL,
+-  OL_I_ID NUMBER NOT NULL,
+-  OL_DELIVERY_D DATE,
+-  OL_AMOUNT NUMBER(6,2) NOT NULL,
+-  OL_SUPPLY_W_ID NUMBER NOT NULL,
+-  OL_QUANTITY NUMBER(2,0) NOT NULL,
+-  OL_DIST_INFO CHAR(24) NOT NULL,
+-  PRIMARY KEY (OL_W_ID,OL_D_ID,OL_O_ID,OL_NUMBER)
+-);
+-
+-CREATE TABLE STOCK (
+-  S_W_ID NUMBER NOT NULL,
+-  S_I_ID NUMBER NOT NULL,
+-  S_QUANTITY NUMBER(4,0) NOT NULL,
+-  S_YTD NUMBER(8,2) NOT NULL,
+-  S_ORDER_CNT NUMBER NOT NULL,
+-  S_REMOTE_CNT NUMBER NOT NULL,
+-  S_DATA VARCHAR2(50) NOT NULL,
+-  S_DIST_01 CHAR(24) NOT NULL,
+-  S_DIST_02 CHAR(24) NOT NULL,
+-  S_DIST_03 CHAR(24) NOT NULL,
+-  S_DIST_04 CHAR(24) NOT NULL,
+-  S_DIST_05 CHAR(24) NOT NULL,
+-  S_DIST_06 CHAR(24) NOT NULL,
+-  S_DIST_07 CHAR(24) NOT NULL,
+-  S_DIST_08 CHAR(24) NOT NULL,
+-  S_DIST_09 CHAR(24) NOT NULL,
+-  S_DIST_10 CHAR(24) NOT NULL,
+-  PRIMARY KEY (S_W_ID,S_I_ID)
+-);
+-
+-CREATE TABLE WAREHOUSE (
+-  W_ID NUMBER NOT NULL,
+-  W_TAX NUMBER(4,4) NOT NULL,
+-  W_NAME VARCHAR2(10) NOT NULL,
+-  W_STREET_1 VARCHAR2(20) NOT NULL,
+-  W_STREET_2 VARCHAR2(20) NOT NULL,
+-  W_CITY VARCHAR2(20) NOT NULL,
+-  W_STATE CHAR(2) NOT NULL,
+-  W_ZIP CHAR(9) NOT NULL,
+-  PRIMARY KEY (W_ID)
+-);
+-
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-pg-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-pg-ddl.sql
+deleted file mode 100644
+index b248452..0000000
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-pg-ddl.sql
++++ /dev/null
+@@ -1,126 +0,0 @@
+--- TODO: c_since ON UPDATE CURRENT_TIMESTAMP,
+-DROP TABLE IF EXISTS customer;
+-CREATE TABLE customer (
+-  c_w_id int NOT NULL,
+-  c_d_id int NOT NULL,
+-  c_id int NOT NULL,
+-  c_discount decimal(4,4) NOT NULL,
+-  c_credit char(2) NOT NULL,
+-  c_last varchar(16) NOT NULL,
+-  c_first varchar(16) NOT NULL,
+-  c_credit_lim decimal(12,2) NOT NULL,
+-  c_balance decimal(12,2) NOT NULL,
+-  c_ytd_payment float NOT NULL,
+-  c_payment_cnt int NOT NULL,
+-  c_delivery_cnt int NOT NULL,
+-  c_street_1 varchar(20) NOT NULL,
+-  c_street_2 varchar(20) NOT NULL,
+-  c_city varchar(20) NOT NULL,
+-  c_state char(2) NOT NULL,
+-  c_zip char(9) NOT NULL,
+-  c_phone char(16) NOT NULL,
+-  c_since timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+-  c_middle char(2) NOT NULL,
+-  c_data varchar(500) NOT NULL,
+-  PRIMARY KEY (c_w_id,c_d_id,c_id)
+-);
+-CREATE INDEX IDX_CUSTOMER_NAME ON customer (c_w_id,c_d_id,c_last,c_first);
+-
+-DROP TABLE IF EXISTS district;
+-CREATE TABLE district (
+-  d_w_id int NOT NULL,
+-  d_id int NOT NULL,
+-  d_ytd decimal(12,2) NOT NULL,
+-  d_tax decimal(4,4) NOT NULL,
+-  d_next_o_id int NOT NULL,
+-  d_name varchar(10) NOT NULL,
+-  d_street_1 varchar(20) NOT NULL,
+-  d_street_2 varchar(20) NOT NULL,
+-  d_city varchar(20) NOT NULL,
+-  d_state char(2) NOT NULL,
+-  d_zip char(9) NOT NULL,
+-  PRIMARY KEY (d_w_id,d_id)
+-);
+-
+-DROP TABLE IF EXISTS item;
+-CREATE TABLE item (
+-  i_id int NOT NULL,
+-  i_name varchar(24) NOT NULL,
+-  i_price decimal(5,2) NOT NULL,
+-  i_data varchar(50) NOT NULL,
+-  i_im_id int NOT NULL,
+-  PRIMARY KEY (i_id)
+-);
+-
+-DROP TABLE IF EXISTS new_order;
+-CREATE TABLE new_order (
+-  no_w_id int NOT NULL,
+-  no_d_id int NOT NULL,
+-  no_o_id int NOT NULL,
+-  PRIMARY KEY (no_w_id,no_d_id,no_o_id)
+-);
+-
+--- TODO: o_entry_d  ON UPDATE CURRENT_TIMESTAMP
+-DROP TABLE IF EXISTS oorder;
+-CREATE TABLE oorder (
+-  o_w_id int NOT NULL,
+-  o_d_id int NOT NULL,
+-  o_id int NOT NULL,
+-  o_c_id int NOT NULL,
+-  o_carrier_id int DEFAULT NULL,
+-  o_ol_cnt decimal(2,0) NOT NULL,
+-  o_all_local decimal(1,0) NOT NULL,
+-  o_entry_d timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+-  PRIMARY KEY (o_w_id,o_d_id,o_id),
+-  UNIQUE (o_w_id,o_d_id,o_c_id,o_id)
+-);
+-
+-DROP TABLE IF EXISTS order_line;
+-CREATE TABLE order_line (
+-  ol_w_id int NOT NULL,
+-  ol_d_id int NOT NULL,
+-  ol_o_id int NOT NULL,
+-  ol_number int NOT NULL,
+-  ol_i_id int NOT NULL,
+-  ol_delivery_d timestamp NULL DEFAULT NULL,
+-  ol_amount decimal(6,2) NOT NULL,
+-  ol_supply_w_id int NOT NULL,
+-  ol_quantity decimal(2,0) NOT NULL,
+-  ol_dist_info char(24) NOT NULL,
+-  PRIMARY KEY (ol_w_id,ol_d_id,ol_o_id,ol_number)
+-);
+-
+-DROP TABLE IF EXISTS stock;
+-CREATE TABLE stock (
+-  s_w_id int NOT NULL,
+-  s_i_id int NOT NULL,
+-  s_quantity decimal(4,0) NOT NULL,
+-  s_ytd decimal(8,2) NOT NULL,
+-  s_order_cnt int NOT NULL,
+-  s_remote_cnt int NOT NULL,
+-  s_data varchar(50) NOT NULL,
+-  s_dist_01 char(24) NOT NULL,
+-  s_dist_02 char(24) NOT NULL,
+-  s_dist_03 char(24) NOT NULL,
+-  s_dist_04 char(24) NOT NULL,
+-  s_dist_05 char(24) NOT NULL,
+-  s_dist_06 char(24) NOT NULL,
+-  s_dist_07 char(24) NOT NULL,
+-  s_dist_08 char(24) NOT NULL,
+-  s_dist_09 char(24) NOT NULL,
+-  s_dist_10 char(24) NOT NULL,
+-  PRIMARY KEY (s_w_id,s_i_id)
+-);
+-
+-DROP TABLE IF EXISTS warehouse;
+-CREATE TABLE warehouse (
+-  w_id int NOT NULL,
+-  w_tax decimal(4,4) NOT NULL,
+-  w_name varchar(10) NOT NULL,
+-  w_street_1 varchar(20) NOT NULL,
+-  w_street_2 varchar(20) NOT NULL,
+-  w_city varchar(20) NOT NULL,
+-  w_state char(2) NOT NULL,
+-  w_zip char(9) NOT NULL,
+-  PRIMARY KEY (w_id)
+-);
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql
+deleted file mode 100644
+index c639d6a..0000000
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql
++++ /dev/null
+@@ -1,131 +0,0 @@
+---  DROP EXISTING TABLES
+-IF OBJECT_ID('WAREHOUSE') IS NOT NULL DROP TABLE WAREHOUSE;
+-IF OBJECT_ID('STOCK') IS NOT NULL DROP TABLE STOCK;
+-IF OBJECT_ID('ORDER_LINE') IS NOT NULL DROP TABLE ORDER_LINE;
+-IF OBJECT_ID('OORDER') IS NOT NULL DROP TABLE OORDER;
+-IF OBJECT_ID('NEW_ORDER') IS NOT NULL DROP TABLE NEW_ORDER;
+-IF OBJECT_ID('ITEM') IS NOT NULL DROP TABLE ITEM;
+-IF OBJECT_ID('DISTRICT') IS NOT NULL DROP TABLE DISTRICT;
+-IF OBJECT_ID('CUSTOMER') IS NOT NULL DROP TABLE CUSTOMER;
+-
+--- CREATE TABLES
+-
+-CREATE TABLE [DBO].[WAREHOUSE](
+-	[W_ID] [INT] NOT NULL,
+-	[W_TAX] [DECIMAL](4, 4) NOT NULL,
+-	[W_NAME] [VARCHAR](10) NOT NULL,
+-	[W_STREET_1] [VARCHAR](20) NOT NULL,
+-	[W_STREET_2] [VARCHAR](20) NOT NULL,
+-	[W_CITY] [VARCHAR](20) NOT NULL,
+-	[W_STATE] [CHAR](2) NOT NULL,
+-	[W_ZIP] [CHAR](9) NOT NULL,
+-	PRIMARY KEY (W_ID)
+-);
+-
+-CREATE TABLE [DBO].[STOCK](
+-	[S_W_ID] [INT] NOT NULL,
+-	[S_I_ID] [INT] NOT NULL,
+-	[S_QUANTITY] [DECIMAL](4, 0) NOT NULL,
+-	[S_YTD] [DECIMAL](8, 2) NOT NULL,
+-	[S_ORDER_CNT] [INT] NOT NULL,
+-	[S_REMOTE_CNT] [INT] NOT NULL,
+-	[S_DATA] [VARCHAR](50) NOT NULL,
+-	[S_DIST_01] [CHAR](24) NOT NULL,
+-	[S_DIST_02] [CHAR](24) NOT NULL,
+-	[S_DIST_03] [CHAR](24) NOT NULL,
+-	[S_DIST_04] [CHAR](24) NOT NULL,
+-	[S_DIST_05] [CHAR](24) NOT NULL,
+-	[S_DIST_06] [CHAR](24) NOT NULL,
+-	[S_DIST_07] [CHAR](24) NOT NULL,
+-	[S_DIST_08] [CHAR](24) NOT NULL,
+-	[S_DIST_09] [CHAR](24) NOT NULL,
+-	[S_DIST_10] [CHAR](24) NOT NULL,
+-	PRIMARY KEY (S_W_ID,S_I_ID)
+-);
+-
+-CREATE TABLE [DBO].[ORDER_LINE](
+-	[OL_W_ID] [INT] NOT NULL,
+-	[OL_D_ID] [INT] NOT NULL,
+-	[OL_O_ID] [INT] NOT NULL,
+-	[OL_NUMBER] [INT] NOT NULL,
+-	[OL_I_ID] [INT] NOT NULL,
+-	[OL_DELIVERY_D] [SMALLDATETIME] NULL,
+-	[OL_AMOUNT] [DECIMAL](6, 2) NOT NULL,
+-	[OL_SUPPLY_W_ID] [INT] NOT NULL,
+-	[OL_QUANTITY] [DECIMAL](2, 0) NOT NULL,
+-	[OL_DIST_INFO] [CHAR](24) NOT NULL,
+-	PRIMARY KEY (OL_W_ID,OL_D_ID,OL_O_ID,OL_NUMBER)
+-); 
+-
+-CREATE TABLE [DBO].[OORDER](
+-	[O_W_ID] [INT] NOT NULL,
+-	[O_D_ID] [INT] NOT NULL,
+-	[O_ID] [INT] NOT NULL,
+-	[O_C_ID] [INT] NOT NULL,
+-	[O_CARRIER_ID] [INT] NULL,
+-	[O_OL_CNT] [DECIMAL](2, 0) NOT NULL,
+-	[O_ALL_LOCAL] [DECIMAL](1, 0) NOT NULL,
+-	[O_ENTRY_D] [SMALLDATETIME] NULL,
+-	PRIMARY KEY (O_W_ID,O_D_ID,O_ID),
+-    UNIQUE (O_W_ID,O_D_ID,O_C_ID,O_ID)
+-);
+-
+-CREATE TABLE [DBO].[NEW_ORDER](
+-	[NO_W_ID] [INT] NOT NULL,
+-	[NO_D_ID] [INT] NOT NULL,
+-	[NO_O_ID] [INT] NOT NULL,
+-	PRIMARY KEY (NO_W_ID,NO_D_ID,NO_O_ID)
+-);
+-
+-CREATE TABLE [DBO].[ITEM](
+-	[I_ID] [INT] NOT NULL,
+-	[I_NAME] [VARCHAR](24) NOT NULL,
+-	[I_PRICE] [DECIMAL](5, 2) NOT NULL,
+-	[I_DATA] [VARCHAR](50) NOT NULL,
+-	[I_IM_ID] [INT] NOT NULL,
+-	PRIMARY KEY (I_ID)
+-);
+-
+-CREATE TABLE [DBO].[DISTRICT](
+-	[D_W_ID] [INT] NOT NULL,
+-	[D_ID] [INT] NOT NULL,
+-	[D_YTD] [DECIMAL](12, 2) NOT NULL,
+-	[D_TAX] [DECIMAL](4, 4) NOT NULL,
+-	[D_NEXT_O_ID] [INT] NOT NULL,
+-	[D_NAME] [VARCHAR](10) NOT NULL,
+-	[D_STREET_1] [VARCHAR](20) NOT NULL,
+-	[D_STREET_2] [VARCHAR](20) NOT NULL,
+-	[D_CITY] [VARCHAR](20) NOT NULL,
+-	[D_STATE] [CHAR](2) NOT NULL,
+-	[D_ZIP] [CHAR](9) NOT NULL,
+-	PRIMARY KEY (D_W_ID,D_ID)
+-);
+-
+-
+-CREATE TABLE [DBO].[CUSTOMER](
+-	[C_W_ID] [INT] NOT NULL,
+-	[C_D_ID] [INT] NOT NULL,
+-	[C_ID] [INT] NOT NULL,
+-	[C_DISCOUNT] [DECIMAL](4, 4) NOT NULL,
+-	[C_CREDIT] [CHAR](2) NOT NULL,
+-	[C_LAST] [VARCHAR](16) NOT NULL,
+-	[C_FIRST] [VARCHAR](16) NOT NULL,
+-	[C_CREDIT_LIM] [DECIMAL](12, 2) NOT NULL,
+-	[C_BALANCE] [DECIMAL](12, 2) NOT NULL,
+-	[C_YTD_PAYMENT] [REAL] NOT NULL,
+-	[C_PAYMENT_CNT] [INT] NOT NULL,
+-	[C_DELIVERY_CNT] [INT] NOT NULL,
+-	[C_STREET_1] [VARCHAR](20) NOT NULL,
+-	[C_STREET_2] [VARCHAR](20) NOT NULL,
+-	[C_CITY] [VARCHAR](20) NOT NULL,
+-	[C_STATE] [CHAR](2) NOT NULL,
+-	[C_ZIP] [CHAR](9) NOT NULL,
+-	[C_PHONE] [CHAR](16) NOT NULL,
+-	[C_SINCE] [SMALLDATETIME] NULL,
+-	[C_MIDDLE] [CHAR](2) NOT NULL,
+-	[C_DATA] [VARCHAR](500) NOT NULL,
+-	PRIMARY KEY (C_W_ID,C_D_ID,C_ID)
+-);
+-
+--- CREATE INDEXES
+-CREATE INDEX IDX_CUSTOMER_NAME ON [DBO].[CUSTOMER] (C_W_ID,C_D_ID,C_LAST,C_FIRST);
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-db2-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-db2-ddl.sql
+new file mode 100644
+index 0000000..e0f1e3b
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-db2-ddl.sql
+@@ -0,0 +1,127 @@
++--DECLARE CONTINUE HANDLER FOR NOT FOUND SET at_end = 1 end;
++--CONNECT TO TPCC USER db2user USING db2;
++
++--DROP TABLE customer;
++CREATE TABLE customer (
++  c_w_id int NOT NULL,
++  c_d_id int NOT NULL,
++  c_id int NOT NULL,
++  c_discount decimal(4,4) NOT NULL,
++  c_credit char(2) NOT NULL,
++  c_last varchar(16) NOT NULL,
++  c_first varchar(16) NOT NULL,
++  c_credit_lim decimal(12,2) NOT NULL,
++  c_balance decimal(12,2) NOT NULL,
++  c_ytd_payment float NOT NULL,
++  c_payment_cnt int NOT NULL,
++  c_delivery_cnt int NOT NULL,
++  c_street_1 varchar(20) NOT NULL,
++  c_street_2 varchar(20) NOT NULL,
++  c_city varchar(20) NOT NULL,
++  c_state char(2) NOT NULL,
++  c_zip char(9) NOT NULL,
++  c_phone char(16) NOT NULL,
++  c_since timestamp NOT NULL,
++  c_middle char(2) NOT NULL,
++  c_data varchar(500) NOT NULL,
++  PRIMARY KEY (c_w_id,c_d_id,c_id)
++);
++CREATE INDEX IDX_CUSTOMER_NAME ON customer (c_w_id,c_d_id,c_last,c_first);
++
++--DROP TABLE district;
++CREATE TABLE district (
++  d_w_id int NOT NULL,
++  d_id int NOT NULL,
++  d_ytd decimal(12,2) NOT NULL,
++  d_tax decimal(4,4) NOT NULL,
++  d_next_o_id int NOT NULL,
++  d_name varchar(10) NOT NULL,
++  d_street_1 varchar(20) NOT NULL,
++  d_street_2 varchar(20) NOT NULL,
++  d_city varchar(20) NOT NULL,
++  d_state char(2) NOT NULL,
++  d_zip char(9) NOT NULL,
++  PRIMARY KEY (d_w_id,d_id)
++);
++
++--DROP TABLE item;
++CREATE TABLE item (
++  i_id int NOT NULL,
++  i_name varchar(24) NOT NULL,
++  i_price decimal(5,2) NOT NULL,
++  i_data varchar(50) NOT NULL,
++  i_im_id int NOT NULL,
++  PRIMARY KEY (i_id)
++);
++
++--DROP TABLE new_order;
++CREATE TABLE new_order (
++  no_w_id int NOT NULL,
++  no_d_id int NOT NULL,
++  no_o_id int NOT NULL,
++  PRIMARY KEY (no_w_id,no_d_id,no_o_id)
++);
++
++--DROP TABLE oorder;
++CREATE TABLE oorder (
++  o_w_id int NOT NULL,
++  o_d_id int NOT NULL,
++  o_id int NOT NULL,
++  o_c_id int NOT NULL,
++  o_carrier_id int DEFAULT NULL,
++  o_ol_cnt decimal(2,0) NOT NULL,
++  o_all_local decimal(1,0) NOT NULL,
++  o_entry_d timestamp NOT NULL,
++  PRIMARY KEY (o_w_id,o_d_id,o_id),
++  UNIQUE (o_w_id,o_d_id,o_c_id,o_id)
++);
++
++--DROP TABLE order_line;
++CREATE TABLE order_line (
++  ol_w_id int NOT NULL,
++  ol_d_id int NOT NULL,
++  ol_o_id int NOT NULL,
++  ol_number int NOT NULL,
++  ol_i_id int NOT NULL,
++  ol_delivery_d timestamp,
++  ol_amount decimal(6,2) NOT NULL,
++  ol_supply_w_id int NOT NULL,
++  ol_quantity decimal(2,0) NOT NULL,
++  ol_dist_info char(24) NOT NULL,
++  PRIMARY KEY (ol_w_id,ol_d_id,ol_o_id,ol_number)
++);
++
++--DROP TABLE stock;
++CREATE TABLE stock (
++  s_w_id int NOT NULL,
++  s_i_id int NOT NULL,
++  s_quantity decimal(4,0) NOT NULL,
++  s_ytd decimal(8,2) NOT NULL,
++  s_order_cnt int NOT NULL,
++  s_remote_cnt int NOT NULL,
++  s_data varchar(50) NOT NULL,
++  s_dist_01 char(24) NOT NULL,
++  s_dist_02 char(24) NOT NULL,
++  s_dist_03 char(24) NOT NULL,
++  s_dist_04 char(24) NOT NULL,
++  s_dist_05 char(24) NOT NULL,
++  s_dist_06 char(24) NOT NULL,
++  s_dist_07 char(24) NOT NULL,
++  s_dist_08 char(24) NOT NULL,
++  s_dist_09 char(24) NOT NULL,
++  s_dist_10 char(24) NOT NULL,
++  PRIMARY KEY (s_w_id,s_i_id)
++);
++
++--DROP TABLE warehouse;
++CREATE TABLE warehouse (
++  w_id int NOT NULL,
++  w_tax decimal(4,4) NOT NULL,
++  w_name varchar(10) NOT NULL,
++  w_street_1 varchar(20) NOT NULL,
++  w_street_2 varchar(20) NOT NULL,
++  w_city varchar(20) NOT NULL,
++  w_state char(2) NOT NULL,
++  w_zip char(9) NOT NULL,
++  PRIMARY KEY (w_id)
++);
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-ddl.sql
+new file mode 100644
+index 0000000..4d7f562
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-ddl.sql
+@@ -0,0 +1,127 @@
++-- TODO: C_SINCE ON UPDATE CURRENT_TIMESTAMP,
++DROP TABLE IF EXISTS CUSTOMER;
++CREATE TABLE CUSTOMER (
++  C_W_ID INT NOT NULL,
++  C_D_ID INT NOT NULL,
++  C_ID INT NOT NULL,
++  C_DISCOUNT DECIMAL(4,4) NOT NULL,
++  C_CREDIT CHAR(2) NOT NULL,
++  C_LAST VARCHAR(16) NOT NULL,
++  C_FIRST VARCHAR(16) NOT NULL,
++  C_CREDIT_LIM DECIMAL(12,2) NOT NULL,
++  C_BALANCE DECIMAL(12,2) NOT NULL,
++  C_YTD_PAYMENT FLOAT NOT NULL,
++  C_PAYMENT_CNT INT NOT NULL,
++  C_DELIVERY_CNT INT NOT NULL,
++  C_STREET_1 VARCHAR(20) NOT NULL,
++  C_STREET_2 VARCHAR(20) NOT NULL,
++  C_CITY VARCHAR(20) NOT NULL,
++  C_STATE CHAR(2) NOT NULL,
++  C_ZIP CHAR(9) NOT NULL,
++  C_PHONE CHAR(16) NOT NULL,
++  C_SINCE TIMESTAMP NOT NULL,
++  C_MIDDLE CHAR(2) NOT NULL,
++  C_DATA VARCHAR(500) NOT NULL,
++  PRIMARY KEY (C_W_ID,C_D_ID,C_ID)
++);
++CREATE INDEX IDX_CUSTOMER_NAME ON CUSTOMER (C_W_ID,C_D_ID,C_LAST,C_FIRST);
++
++DROP TABLE IF EXISTS DISTRICT;
++CREATE TABLE DISTRICT (
++  D_W_ID INT NOT NULL,
++  D_ID INT NOT NULL,
++  D_YTD DECIMAL(12,2) NOT NULL,
++  D_TAX DECIMAL(4,4) NOT NULL,
++  D_NEXT_O_ID INT NOT NULL,
++  D_NAME VARCHAR(10) NOT NULL,
++  D_STREET_1 VARCHAR(20) NOT NULL,
++  D_STREET_2 VARCHAR(20) NOT NULL,
++  D_CITY VARCHAR(20) NOT NULL,
++  D_STATE CHAR(2) NOT NULL,
++  D_ZIP CHAR(9) NOT NULL,
++  PRIMARY KEY (D_W_ID,D_ID)
++);
++
++DROP TABLE IF EXISTS ITEM;
++CREATE TABLE ITEM (
++  I_ID INT NOT NULL,
++  I_NAME VARCHAR(24) NOT NULL,
++  I_PRICE DECIMAL(5,2) NOT NULL,
++  I_DATA VARCHAR(50) NOT NULL,
++  I_IM_ID INT NOT NULL,
++  PRIMARY KEY (I_ID)
++);
++
++DROP TABLE IF EXISTS NEW_ORDER;
++CREATE TABLE NEW_ORDER (
++  NO_W_ID INT NOT NULL,
++  NO_D_ID INT NOT NULL,
++  NO_O_ID INT NOT NULL,
++  PRIMARY KEY (NO_W_ID,NO_D_ID,NO_O_ID)
++);
++
++-- TODO: O_ENTRY_D  ON UPDATE CURRENT_TIMESTAMP
++DROP TABLE IF EXISTS OORDER;
++CREATE TABLE OORDER (
++  O_W_ID INT NOT NULL,
++  O_D_ID INT NOT NULL,
++  O_ID INT NOT NULL,
++  O_C_ID INT NOT NULL,
++  O_CARRIER_ID INT DEFAULT NULL,
++  O_OL_CNT DECIMAL(2,0) NOT NULL,
++  O_ALL_LOCAL DECIMAL(1,0) NOT NULL,
++  O_ENTRY_D TIMESTAMP NOT NULL,
++  PRIMARY KEY (O_W_ID,O_D_ID,O_ID),
++  UNIQUE (O_W_ID,O_D_ID,O_C_ID,O_ID)
++);
++
++DROP TABLE IF EXISTS ORDER_LINE;
++CREATE TABLE ORDER_LINE (
++  OL_W_ID INT NOT NULL,
++  OL_D_ID INT NOT NULL,
++  OL_O_ID INT NOT NULL,
++  OL_NUMBER INT NOT NULL,
++  OL_I_ID INT NOT NULL,
++  OL_DELIVERY_D TIMESTAMP,
++  OL_AMOUNT DECIMAL(6,2) NOT NULL,
++  OL_SUPPLY_W_ID INT NOT NULL,
++  OL_QUANTITY DECIMAL(2,0) NOT NULL,
++  OL_DIST_INFO CHAR(24) NOT NULL,
++  PRIMARY KEY (OL_W_ID,OL_D_ID,OL_O_ID,OL_NUMBER)
++);
++
++DROP TABLE IF EXISTS STOCK;
++CREATE TABLE STOCK (
++  S_W_ID INT NOT NULL,
++  S_I_ID INT NOT NULL,
++  S_QUANTITY DECIMAL(4,0) NOT NULL,
++  S_YTD DECIMAL(8,2) NOT NULL,
++  S_ORDER_CNT INT NOT NULL,
++  S_REMOTE_CNT INT NOT NULL,
++  S_DATA VARCHAR(50) NOT NULL,
++  S_DIST_01 CHAR(24) NOT NULL,
++  S_DIST_02 CHAR(24) NOT NULL,
++  S_DIST_03 CHAR(24) NOT NULL,
++  S_DIST_04 CHAR(24) NOT NULL,
++  S_DIST_05 CHAR(24) NOT NULL,
++  S_DIST_06 CHAR(24) NOT NULL,
++  S_DIST_07 CHAR(24) NOT NULL,
++  S_DIST_08 CHAR(24) NOT NULL,
++  S_DIST_09 CHAR(24) NOT NULL,
++  S_DIST_10 CHAR(24) NOT NULL,
++  PRIMARY KEY (S_W_ID,S_I_ID)
++);
++
++DROP TABLE IF EXISTS WAREHOUSE;
++CREATE TABLE WAREHOUSE (
++  W_ID INT NOT NULL,
++  W_TAX DECIMAL(4,4) NOT NULL,
++  W_NAME VARCHAR(10) NOT NULL,
++  W_STREET_1 VARCHAR(20) NOT NULL,
++  W_STREET_2 VARCHAR(20) NOT NULL,
++  W_CITY VARCHAR(20) NOT NULL,
++  W_STATE CHAR(2) NOT NULL,
++  W_ZIP CHAR(9) NOT NULL,
++  PRIMARY KEY (W_ID)
++);
++
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-dialects.xml b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-dialects.xml
+new file mode 100644
+index 0000000..c351504
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-dialects.xml
+@@ -0,0 +1,64 @@
++<?xml version="1.0"?>
++<dialects>
++    <dialect type="ORACLE">
++        <procedure name="Delivery">
++            <statement name="delivGetOrderIdSQL">
++                SELECT NO_O_ID
++                    FROM NEW_ORDER
++                    WHERE NO_D_ID = ? AND NO_W_ID = ? AND ROWNUM = 1 ORDER BY NO_O_ID ASC
++            </statement>
++        </procedure>
++        <procedure name="OrderStatus">
++            <statement name="ordStatGetNewestOrdSQL">
++                SELECT O_ID, O_CARRIER_ID, O_ENTRY_D
++                        FROM OORDER
++                        WHERE O_W_ID = ? AND O_D_ID = ? AND O_C_ID = ? AND ROWNUM =1 ORDER BY O_ID DESC
++            </statement>
++        </procedure>
++    </dialect>
++    <dialect type="DB2">
++        <procedure name="Delivery">
++            <statement name="delivGetOrderIdSQL">
++                SELECT NO_O_ID
++                    FROM NEW_ORDER
++                    WHERE NO_D_ID = ? AND NO_W_ID = ? ORDER BY NO_O_ID ASC FETCH FIRST 1 ROWS ONLY
++            </statement>
++        </procedure>
++        <procedure name="OrderStatus">
++            <statement name="ordStatGetNewestOrdSQL">
++                SELECT O_ID, O_CARRIER_ID, O_ENTRY_D
++                        FROM OORDER
++                        WHERE O_W_ID = ? AND O_D_ID = ? AND O_C_ID = ? ORDER BY O_ID DESC FETCH FIRST 1 ROWS ONLY
++            </statement>
++        </procedure>
++    </dialect>
++    <dialect type="SQLSERVER">
++        <procedure name="Delivery">
++            <statement name="delivGetOrderIdSQL">
++                SELECT TOP 1 NO_O_ID
++                        FROM NEW_ORDER
++                        WHERE NO_D_ID = ? AND NO_W_ID = ? ORDER BY NO_O_ID ASC
++            </statement>
++        </procedure>
++        <procedure name="NewOrder">
++            <statement name="stmtGetDistSQL">
++                SELECT D_NEXT_O_ID,D_TAX
++                        FROM DISTRICT
++                        WHERE D_W_ID = ? AND D_ID = ?
++            </statement>
++            <statement name="stmtGetStockSQL">
++                SELECT S_QUANTITY, S_DATA, S_DIST_01, S_DIST_02, S_DIST_03, S_DIST_04, S_DIST_05,
++                    S_DIST_06, S_DIST_07, S_DIST_08, S_DIST_09, S_DIST_10
++                    FROM STOCK
++                    WHERE S_I_ID = ? AND S_W_ID = ?
++            </statement>
++        </procedure>
++        <procedure name="OrderStatus">
++            <statement name="ordStatGetNewestOrdSQL">
++                SELECT TOP 1 O_ID, O_CARRIER_ID, O_ENTRY_D
++                        FROM OORDER
++                        WHERE O_W_ID = ? AND O_D_ID = ? AND O_C_ID = ? ORDER BY O_ID DESC
++            </statement>
++        </procedure>
++    </dialect>
++</dialects>
+\ No newline at end of file
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-mysql-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-mysql-ddl.sql
+new file mode 100644
+index 0000000..02e33db
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-mysql-ddl.sql
+@@ -0,0 +1,133 @@
++-- TODO: C_SINCE ON UPDATE CURRENT_TIMESTAMP,
++DROP TABLE IF EXISTS CUSTOMER;
++DROP TABLE IF EXISTS DISTRICT;
++DROP TABLE IF EXISTS ITEM;
++DROP TABLE IF EXISTS NEW_ORDER;
++DROP TABLE IF EXISTS OORDER;
++DROP TABLE IF EXISTS ORDER_LINE;
++DROP TABLE IF EXISTS STOCK;
++DROP TABLE IF EXISTS WAREHOUSE;
++
++CREATE TABLE CUSTOMER (
++  C_W_ID INT NOT NULL,
++  C_D_ID INT NOT NULL,
++  C_ID INT NOT NULL,
++  C_DISCOUNT DECIMAL(4,4) NOT NULL,
++  C_CREDIT CHAR(2) NOT NULL,
++  C_LAST VARCHAR(16) NOT NULL,
++  C_FIRST VARCHAR(16) NOT NULL,
++  C_CREDIT_LIM DECIMAL(12,2) NOT NULL,
++  C_BALANCE DECIMAL(12,2) NOT NULL,
++  C_YTD_PAYMENT FLOAT NOT NULL,
++  C_PAYMENT_CNT INT NOT NULL,
++  C_DELIVERY_CNT INT NOT NULL,
++  C_STREET_1 VARCHAR(20) NOT NULL,
++  C_STREET_2 VARCHAR(20) NOT NULL,
++  C_CITY VARCHAR(20) NOT NULL,
++  C_STATE CHAR(2) NOT NULL,
++  C_ZIP CHAR(9) NOT NULL,
++  C_PHONE CHAR(16) NOT NULL,
++  C_SINCE TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
++  C_MIDDLE CHAR(2) NOT NULL,
++  C_DATA VARCHAR(500) NOT NULL,
++  PRIMARY KEY (C_W_ID,C_D_ID,C_ID)
++);
++
++
++CREATE TABLE DISTRICT (
++  D_W_ID INT NOT NULL,
++  D_ID INT NOT NULL,
++  D_YTD DECIMAL(12,2) NOT NULL,
++  D_TAX DECIMAL(4,4) NOT NULL,
++  D_NEXT_O_ID INT NOT NULL,
++  D_NAME VARCHAR(10) NOT NULL,
++  D_STREET_1 VARCHAR(20) NOT NULL,
++  D_STREET_2 VARCHAR(20) NOT NULL,
++  D_CITY VARCHAR(20) NOT NULL,
++  D_STATE CHAR(2) NOT NULL,
++  D_ZIP CHAR(9) NOT NULL,
++  PRIMARY KEY (D_W_ID,D_ID)
++);
++
++CREATE TABLE ITEM (
++  I_ID INT NOT NULL,
++  I_NAME VARCHAR(24) NOT NULL,
++  I_PRICE DECIMAL(5,2) NOT NULL,
++  I_DATA VARCHAR(50) NOT NULL,
++  I_IM_ID INT NOT NULL,
++  PRIMARY KEY (I_ID)
++);
++
++
++CREATE TABLE NEW_ORDER (
++  NO_W_ID INT NOT NULL,
++  NO_D_ID INT NOT NULL,
++  NO_O_ID INT NOT NULL,
++  PRIMARY KEY (NO_W_ID,NO_D_ID,NO_O_ID)
++);
++
++-- TODO: O_ENTRY_D  ON UPDATE CURRENT_TIMESTAMP
++
++CREATE TABLE OORDER (
++  O_W_ID INT NOT NULL,
++  O_D_ID INT NOT NULL,
++  O_ID INT NOT NULL,
++  O_C_ID INT NOT NULL,
++  O_CARRIER_ID INT DEFAULT NULL,
++  O_OL_CNT DECIMAL(2,0) NOT NULL,
++  O_ALL_LOCAL DECIMAL(1,0) NOT NULL,
++  O_ENTRY_D TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
++  PRIMARY KEY (O_W_ID,O_D_ID,O_ID),
++  UNIQUE (O_W_ID,O_D_ID,O_C_ID,O_ID)
++);
++
++
++CREATE TABLE ORDER_LINE (
++  OL_W_ID INT NOT NULL,
++  OL_D_ID INT NOT NULL,
++  OL_O_ID INT NOT NULL,
++  OL_NUMBER INT NOT NULL,
++  OL_I_ID INT NOT NULL,
++  OL_DELIVERY_D TIMESTAMP NULL DEFAULT NULL,
++  OL_AMOUNT DECIMAL(6,2) NOT NULL,
++  OL_SUPPLY_W_ID INT NOT NULL,
++  OL_QUANTITY DECIMAL(2,0) NOT NULL,
++  OL_DIST_INFO CHAR(24) NOT NULL,
++  PRIMARY KEY (OL_W_ID,OL_D_ID,OL_O_ID,OL_NUMBER)
++);
++
++CREATE TABLE STOCK (
++  S_W_ID INT NOT NULL,
++  S_I_ID INT NOT NULL,
++  S_QUANTITY DECIMAL(4,0) NOT NULL,
++  S_YTD DECIMAL(8,2) NOT NULL,
++  S_ORDER_CNT INT NOT NULL,
++  S_REMOTE_CNT INT NOT NULL,
++  S_DATA VARCHAR(50) NOT NULL,
++  S_DIST_01 CHAR(24) NOT NULL,
++  S_DIST_02 CHAR(24) NOT NULL,
++  S_DIST_03 CHAR(24) NOT NULL,
++  S_DIST_04 CHAR(24) NOT NULL,
++  S_DIST_05 CHAR(24) NOT NULL,
++  S_DIST_06 CHAR(24) NOT NULL,
++  S_DIST_07 CHAR(24) NOT NULL,
++  S_DIST_08 CHAR(24) NOT NULL,
++  S_DIST_09 CHAR(24) NOT NULL,
++  S_DIST_10 CHAR(24) NOT NULL,
++  PRIMARY KEY (S_W_ID,S_I_ID)
++);
++
++CREATE TABLE WAREHOUSE (
++  W_ID INT NOT NULL,
++  W_TAX DECIMAL(4,4) NOT NULL,
++  W_NAME VARCHAR(10) NOT NULL,
++  W_STREET_1 VARCHAR(20) NOT NULL,
++  W_STREET_2 VARCHAR(20) NOT NULL,
++  W_CITY VARCHAR(20) NOT NULL,
++  W_STATE CHAR(2) NOT NULL,
++  W_ZIP CHAR(9) NOT NULL,
++  PRIMARY KEY (W_ID)
++);
++
++-- INDEXES
++CREATE INDEX IDX_CUSTOMER_NAME ON CUSTOMER (C_W_ID,C_D_ID,C_LAST,C_FIRST);
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-nuodb-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-nuodb-ddl.sql
+new file mode 100644
+index 0000000..ab7f5a7
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-nuodb-ddl.sql
+@@ -0,0 +1,134 @@
++-- TODO: C_SINCE ON UPDATE CURRENT_TIMESTAMP,
++DROP TABLE IF EXISTS CUSTOMER;
++DROP TABLE IF EXISTS DISTRICT;
++DROP TABLE IF EXISTS ITEM;
++DROP TABLE IF EXISTS NEW_ORDER;
++DROP TABLE IF EXISTS OORDER;
++DROP TABLE IF EXISTS ORDER_LINE;
++DROP TABLE IF EXISTS STOCK;
++DROP TABLE IF EXISTS WAREHOUSE;
++
++CREATE TABLE CUSTOMER (
++  C_W_ID INT NOT NULL,
++  C_D_ID INT NOT NULL,
++  C_ID INT NOT NULL,
++  C_DISCOUNT DECIMAL(4,4) NOT NULL,
++  C_CREDIT STRING NOT NULL,
++  C_LAST STRING NOT NULL,
++  C_FIRST STRING NOT NULL,
++  C_CREDIT_LIM DECIMAL(12,2) NOT NULL,
++  C_BALANCE DECIMAL(12,2) NOT NULL,
++  C_YTD_PAYMENT FLOAT NOT NULL,
++  C_PAYMENT_CNT INT NOT NULL,
++  C_DELIVERY_CNT INT NOT NULL,
++  C_STREET_1 STRING NOT NULL,
++  C_STREET_2 STRING NOT NULL,
++  C_CITY STRING NOT NULL,
++  C_STATE STRING NOT NULL,
++  C_ZIP STRING NOT NULL,
++  C_PHONE STRING NOT NULL,
++  C_SINCE TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
++  C_MIDDLE STRING NOT NULL,
++  C_DATA STRING NOT NULL,
++  PRIMARY KEY (C_W_ID,C_D_ID,C_ID)
++);
++
++
++CREATE TABLE DISTRICT (
++  D_W_ID INT NOT NULL,
++  D_ID INT NOT NULL,
++  D_YTD DECIMAL(12,2) NOT NULL,
++  D_TAX DECIMAL(4,4) NOT NULL,
++  D_NEXT_O_ID INT NOT NULL,
++  D_NAME STRING NOT NULL,
++  D_STREET_1 STRING NOT NULL,
++  D_STREET_2 STRING NOT NULL,
++  D_CITY STRING NOT NULL,
++  D_STATE STRING NOT NULL,
++  D_ZIP STRING NOT NULL,
++  PRIMARY KEY (D_W_ID,D_ID)
++);
++
++
++CREATE TABLE ITEM (
++  I_ID INT NOT NULL,
++  I_NAME VARCHAR(24) NOT NULL,
++  I_PRICE DECIMAL(5,2) NOT NULL,
++  I_DATA VARCHAR(50) NOT NULL,
++  I_IM_ID INT NOT NULL,
++  PRIMARY KEY (I_ID)
++);
++
++
++CREATE TABLE NEW_ORDER (
++  NO_W_ID INT NOT NULL,
++  NO_D_ID INT NOT NULL,
++  NO_O_ID INT NOT NULL,
++  PRIMARY KEY (NO_W_ID,NO_D_ID,NO_O_ID)
++);
++
++-- TODO: O_ENTRY_D  ON UPDATE CURRENT_TIMESTAMP
++
++CREATE TABLE OORDER (
++  O_W_ID INT NOT NULL,
++  O_D_ID INT NOT NULL,
++  O_ID INT NOT NULL,
++  O_C_ID INT NOT NULL,
++  O_CARRIER_ID INT DEFAULT NULL,
++  O_OL_CNT DECIMAL(2,0) NOT NULL,
++  O_ALL_LOCAL DECIMAL(1,0) NOT NULL,
++  O_ENTRY_D TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
++  PRIMARY KEY (O_W_ID,O_D_ID,O_ID),
++  UNIQUE (O_W_ID,O_D_ID,O_C_ID,O_ID)
++);
++
++
++CREATE TABLE ORDER_LINE (
++  OL_W_ID INT NOT NULL,
++  OL_D_ID INT NOT NULL,
++  OL_O_ID INT NOT NULL,
++  OL_NUMBER INT NOT NULL,
++  OL_I_ID INT NOT NULL,
++  OL_DELIVERY_D TIMESTAMP NULL DEFAULT NULL,
++  OL_AMOUNT DECIMAL(6,2) NOT NULL,
++  OL_SUPPLY_W_ID INT NOT NULL,
++  OL_QUANTITY DECIMAL(2,0) NOT NULL,
++  OL_DIST_INFO STRING NOT NULL,
++  PRIMARY KEY (OL_W_ID,OL_D_ID,OL_O_ID,OL_NUMBER)
++);
++
++CREATE TABLE STOCK (
++  S_W_ID INT NOT NULL,
++  S_I_ID INT NOT NULL,
++  S_QUANTITY DECIMAL(4,0) NOT NULL,
++  S_YTD DECIMAL(8,2) NOT NULL,
++  S_ORDER_CNT INT NOT NULL,
++  S_REMOTE_CNT INT NOT NULL,
++  S_DATA STRING NOT NULL,
++  S_DIST_01 STRING NOT NULL,
++  S_DIST_02 STRING NOT NULL,
++  S_DIST_03 STRING NOT NULL,
++  S_DIST_04 STRING NOT NULL,
++  S_DIST_05 STRING NOT NULL,
++  S_DIST_06 STRING NOT NULL,
++  S_DIST_07 STRING NOT NULL,
++  S_DIST_08 STRING NOT NULL,
++  S_DIST_09 STRING NOT NULL,
++  S_DIST_10 STRING NOT NULL,
++  PRIMARY KEY (S_W_ID,S_I_ID)
++);
++
++CREATE TABLE WAREHOUSE (
++  W_ID INT NOT NULL,
++  W_TAX DECIMAL(4,4) NOT NULL,
++  W_NAME STRING NOT NULL,
++  W_STREET_1 STRING NOT NULL,
++  W_STREET_2 STRING NOT NULL,
++  W_CITY STRING NOT NULL,
++  W_STATE STRING NOT NULL,
++  W_ZIP STRING NOT NULL,
++  PRIMARY KEY (W_ID)
++);
++
++-- INDEXES
++CREATE INDEX IDX_CUSTOMER_NAME ON CUSTOMER (C_W_ID,C_D_ID,C_LAST,C_FIRST);
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-oracle-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-oracle-ddl.sql
+new file mode 100644
+index 0000000..fd5e418
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-oracle-ddl.sql
+@@ -0,0 +1,127 @@
++BEGIN EXECUTE IMMEDIATE 'DROP TABLE ORDER_LINE CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
++BEGIN EXECUTE IMMEDIATE 'DROP TABLE STOCK CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
++BEGIN EXECUTE IMMEDIATE 'DROP TABLE ITEM CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
++BEGIN EXECUTE IMMEDIATE 'DROP TABLE NEW_ORDER CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
++BEGIN EXECUTE IMMEDIATE 'DROP TABLE OORDER CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
++BEGIN EXECUTE IMMEDIATE 'DROP TABLE CUSTOMER CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
++BEGIN EXECUTE IMMEDIATE 'DROP TABLE DISTRICT CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
++BEGIN EXECUTE IMMEDIATE 'DROP TABLE WAREHOUSE CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
++
++
++CREATE TABLE CUSTOMER (
++  C_W_ID NUMBER NOT NULL,
++  C_D_ID NUMBER NOT NULL,
++  C_ID NUMBER NOT NULL,
++  C_DISCOUNT NUMBER(4,4) NOT NULL,
++  C_CREDIT CHAR(2) NOT NULL,
++  C_LAST VARCHAR2(16) NOT NULL,
++  C_FIRST VARCHAR2(16) NOT NULL,
++  C_CREDIT_LIM NUMBER(12,2) NOT NULL,
++  C_BALANCE NUMBER(12,2) NOT NULL,
++  C_YTD_PAYMENT FLOAT NOT NULL,
++  C_PAYMENT_CNT NUMBER NOT NULL,
++  C_DELIVERY_CNT NUMBER NOT NULL,
++  C_STREET_1 VARCHAR2(20) NOT NULL,
++  C_STREET_2 VARCHAR2(20) NOT NULL,
++  C_CITY VARCHAR2(20) NOT NULL,
++  C_STATE CHAR(2) NOT NULL,
++  C_ZIP CHAR(9) NOT NULL,
++  C_PHONE CHAR(16) NOT NULL,
++  C_SINCE DATE NOT NULL,
++  C_MIDDLE CHAR(2) NOT NULL,
++  C_DATA VARCHAR2(500) NOT NULL,
++  PRIMARY KEY (C_W_ID,C_D_ID,C_ID)
++);
++CREATE INDEX IDX_CUSTOMER_NAME ON CUSTOMER (C_W_ID,C_D_ID,C_LAST,C_FIRST);
++
++CREATE TABLE DISTRICT (
++  D_W_ID NUMBER NOT NULL,
++  D_ID NUMBER NOT NULL,
++  D_YTD NUMBER(12,2) NOT NULL,
++  D_TAX NUMBER(4,4) NOT NULL,
++  D_NEXT_O_ID NUMBER NOT NULL,
++  D_NAME VARCHAR2(10) NOT NULL,
++  D_STREET_1 VARCHAR2(20) NOT NULL,
++  D_STREET_2 VARCHAR2(20) NOT NULL,
++  D_CITY VARCHAR2(20) NOT NULL,
++  D_STATE CHAR(2) NOT NULL,
++  D_ZIP CHAR(9) NOT NULL,
++  PRIMARY KEY (D_W_ID,D_ID)
++);
++
++CREATE TABLE ITEM (
++  I_ID NUMBER NOT NULL,
++  I_NAME VARCHAR2(24) NOT NULL,
++  I_PRICE NUMBER(5,2) NOT NULL,
++  I_DATA VARCHAR2(50) NOT NULL,
++  I_IM_ID NUMBER NOT NULL,
++  PRIMARY KEY (I_ID)
++);
++
++CREATE TABLE NEW_ORDER (
++  NO_W_ID NUMBER NOT NULL,
++  NO_D_ID NUMBER NOT NULL,
++  NO_O_ID NUMBER NOT NULL,
++  PRIMARY KEY (NO_W_ID,NO_D_ID,NO_O_ID)
++);
++
++CREATE TABLE OORDER (
++  O_W_ID NUMBER NOT NULL,
++  O_D_ID NUMBER NOT NULL,
++  O_ID NUMBER NOT NULL,
++  O_C_ID NUMBER NOT NULL,
++  O_CARRIER_ID NUMBER DEFAULT NULL,
++  O_OL_CNT NUMBER(2,0) NOT NULL,
++  O_ALL_LOCAL NUMBER(1,0) NOT NULL,
++  O_ENTRY_D DATE NOT NULL,
++  PRIMARY KEY (O_W_ID,O_D_ID,O_ID),
++  UNIQUE (O_W_ID,O_D_ID,O_C_ID,O_ID)
++);
++
++CREATE TABLE ORDER_LINE (
++  OL_W_ID NUMBER NOT NULL,
++  OL_D_ID NUMBER NOT NULL,
++  OL_O_ID NUMBER NOT NULL,
++  OL_NUMBER NUMBER NOT NULL,
++  OL_I_ID NUMBER NOT NULL,
++  OL_DELIVERY_D DATE,
++  OL_AMOUNT NUMBER(6,2) NOT NULL,
++  OL_SUPPLY_W_ID NUMBER NOT NULL,
++  OL_QUANTITY NUMBER(2,0) NOT NULL,
++  OL_DIST_INFO CHAR(24) NOT NULL,
++  PRIMARY KEY (OL_W_ID,OL_D_ID,OL_O_ID,OL_NUMBER)
++);
++
++CREATE TABLE STOCK (
++  S_W_ID NUMBER NOT NULL,
++  S_I_ID NUMBER NOT NULL,
++  S_QUANTITY NUMBER(4,0) NOT NULL,
++  S_YTD NUMBER(8,2) NOT NULL,
++  S_ORDER_CNT NUMBER NOT NULL,
++  S_REMOTE_CNT NUMBER NOT NULL,
++  S_DATA VARCHAR2(50) NOT NULL,
++  S_DIST_01 CHAR(24) NOT NULL,
++  S_DIST_02 CHAR(24) NOT NULL,
++  S_DIST_03 CHAR(24) NOT NULL,
++  S_DIST_04 CHAR(24) NOT NULL,
++  S_DIST_05 CHAR(24) NOT NULL,
++  S_DIST_06 CHAR(24) NOT NULL,
++  S_DIST_07 CHAR(24) NOT NULL,
++  S_DIST_08 CHAR(24) NOT NULL,
++  S_DIST_09 CHAR(24) NOT NULL,
++  S_DIST_10 CHAR(24) NOT NULL,
++  PRIMARY KEY (S_W_ID,S_I_ID)
++);
++
++CREATE TABLE WAREHOUSE (
++  W_ID NUMBER NOT NULL,
++  W_TAX NUMBER(4,4) NOT NULL,
++  W_NAME VARCHAR2(10) NOT NULL,
++  W_STREET_1 VARCHAR2(20) NOT NULL,
++  W_STREET_2 VARCHAR2(20) NOT NULL,
++  W_CITY VARCHAR2(20) NOT NULL,
++  W_STATE CHAR(2) NOT NULL,
++  W_ZIP CHAR(9) NOT NULL,
++  PRIMARY KEY (W_ID)
++);
++
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-postgres-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-postgres-ddl.sql
+new file mode 100644
+index 0000000..b248452
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-postgres-ddl.sql
+@@ -0,0 +1,126 @@
++-- TODO: c_since ON UPDATE CURRENT_TIMESTAMP,
++DROP TABLE IF EXISTS customer;
++CREATE TABLE customer (
++  c_w_id int NOT NULL,
++  c_d_id int NOT NULL,
++  c_id int NOT NULL,
++  c_discount decimal(4,4) NOT NULL,
++  c_credit char(2) NOT NULL,
++  c_last varchar(16) NOT NULL,
++  c_first varchar(16) NOT NULL,
++  c_credit_lim decimal(12,2) NOT NULL,
++  c_balance decimal(12,2) NOT NULL,
++  c_ytd_payment float NOT NULL,
++  c_payment_cnt int NOT NULL,
++  c_delivery_cnt int NOT NULL,
++  c_street_1 varchar(20) NOT NULL,
++  c_street_2 varchar(20) NOT NULL,
++  c_city varchar(20) NOT NULL,
++  c_state char(2) NOT NULL,
++  c_zip char(9) NOT NULL,
++  c_phone char(16) NOT NULL,
++  c_since timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
++  c_middle char(2) NOT NULL,
++  c_data varchar(500) NOT NULL,
++  PRIMARY KEY (c_w_id,c_d_id,c_id)
++);
++CREATE INDEX IDX_CUSTOMER_NAME ON customer (c_w_id,c_d_id,c_last,c_first);
++
++DROP TABLE IF EXISTS district;
++CREATE TABLE district (
++  d_w_id int NOT NULL,
++  d_id int NOT NULL,
++  d_ytd decimal(12,2) NOT NULL,
++  d_tax decimal(4,4) NOT NULL,
++  d_next_o_id int NOT NULL,
++  d_name varchar(10) NOT NULL,
++  d_street_1 varchar(20) NOT NULL,
++  d_street_2 varchar(20) NOT NULL,
++  d_city varchar(20) NOT NULL,
++  d_state char(2) NOT NULL,
++  d_zip char(9) NOT NULL,
++  PRIMARY KEY (d_w_id,d_id)
++);
++
++DROP TABLE IF EXISTS item;
++CREATE TABLE item (
++  i_id int NOT NULL,
++  i_name varchar(24) NOT NULL,
++  i_price decimal(5,2) NOT NULL,
++  i_data varchar(50) NOT NULL,
++  i_im_id int NOT NULL,
++  PRIMARY KEY (i_id)
++);
++
++DROP TABLE IF EXISTS new_order;
++CREATE TABLE new_order (
++  no_w_id int NOT NULL,
++  no_d_id int NOT NULL,
++  no_o_id int NOT NULL,
++  PRIMARY KEY (no_w_id,no_d_id,no_o_id)
++);
++
++-- TODO: o_entry_d  ON UPDATE CURRENT_TIMESTAMP
++DROP TABLE IF EXISTS oorder;
++CREATE TABLE oorder (
++  o_w_id int NOT NULL,
++  o_d_id int NOT NULL,
++  o_id int NOT NULL,
++  o_c_id int NOT NULL,
++  o_carrier_id int DEFAULT NULL,
++  o_ol_cnt decimal(2,0) NOT NULL,
++  o_all_local decimal(1,0) NOT NULL,
++  o_entry_d timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
++  PRIMARY KEY (o_w_id,o_d_id,o_id),
++  UNIQUE (o_w_id,o_d_id,o_c_id,o_id)
++);
++
++DROP TABLE IF EXISTS order_line;
++CREATE TABLE order_line (
++  ol_w_id int NOT NULL,
++  ol_d_id int NOT NULL,
++  ol_o_id int NOT NULL,
++  ol_number int NOT NULL,
++  ol_i_id int NOT NULL,
++  ol_delivery_d timestamp NULL DEFAULT NULL,
++  ol_amount decimal(6,2) NOT NULL,
++  ol_supply_w_id int NOT NULL,
++  ol_quantity decimal(2,0) NOT NULL,
++  ol_dist_info char(24) NOT NULL,
++  PRIMARY KEY (ol_w_id,ol_d_id,ol_o_id,ol_number)
++);
++
++DROP TABLE IF EXISTS stock;
++CREATE TABLE stock (
++  s_w_id int NOT NULL,
++  s_i_id int NOT NULL,
++  s_quantity decimal(4,0) NOT NULL,
++  s_ytd decimal(8,2) NOT NULL,
++  s_order_cnt int NOT NULL,
++  s_remote_cnt int NOT NULL,
++  s_data varchar(50) NOT NULL,
++  s_dist_01 char(24) NOT NULL,
++  s_dist_02 char(24) NOT NULL,
++  s_dist_03 char(24) NOT NULL,
++  s_dist_04 char(24) NOT NULL,
++  s_dist_05 char(24) NOT NULL,
++  s_dist_06 char(24) NOT NULL,
++  s_dist_07 char(24) NOT NULL,
++  s_dist_08 char(24) NOT NULL,
++  s_dist_09 char(24) NOT NULL,
++  s_dist_10 char(24) NOT NULL,
++  PRIMARY KEY (s_w_id,s_i_id)
++);
++
++DROP TABLE IF EXISTS warehouse;
++CREATE TABLE warehouse (
++  w_id int NOT NULL,
++  w_tax decimal(4,4) NOT NULL,
++  w_name varchar(10) NOT NULL,
++  w_street_1 varchar(20) NOT NULL,
++  w_street_2 varchar(20) NOT NULL,
++  w_city varchar(20) NOT NULL,
++  w_state char(2) NOT NULL,
++  w_zip char(9) NOT NULL,
++  PRIMARY KEY (w_id)
++);
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-sqlserver-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-sqlserver-ddl.sql
+new file mode 100644
+index 0000000..c639d6a
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc_plus-sqlserver-ddl.sql
+@@ -0,0 +1,131 @@
++--  DROP EXISTING TABLES
++IF OBJECT_ID('WAREHOUSE') IS NOT NULL DROP TABLE WAREHOUSE;
++IF OBJECT_ID('STOCK') IS NOT NULL DROP TABLE STOCK;
++IF OBJECT_ID('ORDER_LINE') IS NOT NULL DROP TABLE ORDER_LINE;
++IF OBJECT_ID('OORDER') IS NOT NULL DROP TABLE OORDER;
++IF OBJECT_ID('NEW_ORDER') IS NOT NULL DROP TABLE NEW_ORDER;
++IF OBJECT_ID('ITEM') IS NOT NULL DROP TABLE ITEM;
++IF OBJECT_ID('DISTRICT') IS NOT NULL DROP TABLE DISTRICT;
++IF OBJECT_ID('CUSTOMER') IS NOT NULL DROP TABLE CUSTOMER;
++
++-- CREATE TABLES
++
++CREATE TABLE [DBO].[WAREHOUSE](
++	[W_ID] [INT] NOT NULL,
++	[W_TAX] [DECIMAL](4, 4) NOT NULL,
++	[W_NAME] [VARCHAR](10) NOT NULL,
++	[W_STREET_1] [VARCHAR](20) NOT NULL,
++	[W_STREET_2] [VARCHAR](20) NOT NULL,
++	[W_CITY] [VARCHAR](20) NOT NULL,
++	[W_STATE] [CHAR](2) NOT NULL,
++	[W_ZIP] [CHAR](9) NOT NULL,
++	PRIMARY KEY (W_ID)
++);
++
++CREATE TABLE [DBO].[STOCK](
++	[S_W_ID] [INT] NOT NULL,
++	[S_I_ID] [INT] NOT NULL,
++	[S_QUANTITY] [DECIMAL](4, 0) NOT NULL,
++	[S_YTD] [DECIMAL](8, 2) NOT NULL,
++	[S_ORDER_CNT] [INT] NOT NULL,
++	[S_REMOTE_CNT] [INT] NOT NULL,
++	[S_DATA] [VARCHAR](50) NOT NULL,
++	[S_DIST_01] [CHAR](24) NOT NULL,
++	[S_DIST_02] [CHAR](24) NOT NULL,
++	[S_DIST_03] [CHAR](24) NOT NULL,
++	[S_DIST_04] [CHAR](24) NOT NULL,
++	[S_DIST_05] [CHAR](24) NOT NULL,
++	[S_DIST_06] [CHAR](24) NOT NULL,
++	[S_DIST_07] [CHAR](24) NOT NULL,
++	[S_DIST_08] [CHAR](24) NOT NULL,
++	[S_DIST_09] [CHAR](24) NOT NULL,
++	[S_DIST_10] [CHAR](24) NOT NULL,
++	PRIMARY KEY (S_W_ID,S_I_ID)
++);
++
++CREATE TABLE [DBO].[ORDER_LINE](
++	[OL_W_ID] [INT] NOT NULL,
++	[OL_D_ID] [INT] NOT NULL,
++	[OL_O_ID] [INT] NOT NULL,
++	[OL_NUMBER] [INT] NOT NULL,
++	[OL_I_ID] [INT] NOT NULL,
++	[OL_DELIVERY_D] [SMALLDATETIME] NULL,
++	[OL_AMOUNT] [DECIMAL](6, 2) NOT NULL,
++	[OL_SUPPLY_W_ID] [INT] NOT NULL,
++	[OL_QUANTITY] [DECIMAL](2, 0) NOT NULL,
++	[OL_DIST_INFO] [CHAR](24) NOT NULL,
++	PRIMARY KEY (OL_W_ID,OL_D_ID,OL_O_ID,OL_NUMBER)
++); 
++
++CREATE TABLE [DBO].[OORDER](
++	[O_W_ID] [INT] NOT NULL,
++	[O_D_ID] [INT] NOT NULL,
++	[O_ID] [INT] NOT NULL,
++	[O_C_ID] [INT] NOT NULL,
++	[O_CARRIER_ID] [INT] NULL,
++	[O_OL_CNT] [DECIMAL](2, 0) NOT NULL,
++	[O_ALL_LOCAL] [DECIMAL](1, 0) NOT NULL,
++	[O_ENTRY_D] [SMALLDATETIME] NULL,
++	PRIMARY KEY (O_W_ID,O_D_ID,O_ID),
++    UNIQUE (O_W_ID,O_D_ID,O_C_ID,O_ID)
++);
++
++CREATE TABLE [DBO].[NEW_ORDER](
++	[NO_W_ID] [INT] NOT NULL,
++	[NO_D_ID] [INT] NOT NULL,
++	[NO_O_ID] [INT] NOT NULL,
++	PRIMARY KEY (NO_W_ID,NO_D_ID,NO_O_ID)
++);
++
++CREATE TABLE [DBO].[ITEM](
++	[I_ID] [INT] NOT NULL,
++	[I_NAME] [VARCHAR](24) NOT NULL,
++	[I_PRICE] [DECIMAL](5, 2) NOT NULL,
++	[I_DATA] [VARCHAR](50) NOT NULL,
++	[I_IM_ID] [INT] NOT NULL,
++	PRIMARY KEY (I_ID)
++);
++
++CREATE TABLE [DBO].[DISTRICT](
++	[D_W_ID] [INT] NOT NULL,
++	[D_ID] [INT] NOT NULL,
++	[D_YTD] [DECIMAL](12, 2) NOT NULL,
++	[D_TAX] [DECIMAL](4, 4) NOT NULL,
++	[D_NEXT_O_ID] [INT] NOT NULL,
++	[D_NAME] [VARCHAR](10) NOT NULL,
++	[D_STREET_1] [VARCHAR](20) NOT NULL,
++	[D_STREET_2] [VARCHAR](20) NOT NULL,
++	[D_CITY] [VARCHAR](20) NOT NULL,
++	[D_STATE] [CHAR](2) NOT NULL,
++	[D_ZIP] [CHAR](9) NOT NULL,
++	PRIMARY KEY (D_W_ID,D_ID)
++);
++
++
++CREATE TABLE [DBO].[CUSTOMER](
++	[C_W_ID] [INT] NOT NULL,
++	[C_D_ID] [INT] NOT NULL,
++	[C_ID] [INT] NOT NULL,
++	[C_DISCOUNT] [DECIMAL](4, 4) NOT NULL,
++	[C_CREDIT] [CHAR](2) NOT NULL,
++	[C_LAST] [VARCHAR](16) NOT NULL,
++	[C_FIRST] [VARCHAR](16) NOT NULL,
++	[C_CREDIT_LIM] [DECIMAL](12, 2) NOT NULL,
++	[C_BALANCE] [DECIMAL](12, 2) NOT NULL,
++	[C_YTD_PAYMENT] [REAL] NOT NULL,
++	[C_PAYMENT_CNT] [INT] NOT NULL,
++	[C_DELIVERY_CNT] [INT] NOT NULL,
++	[C_STREET_1] [VARCHAR](20) NOT NULL,
++	[C_STREET_2] [VARCHAR](20) NOT NULL,
++	[C_CITY] [VARCHAR](20) NOT NULL,
++	[C_STATE] [CHAR](2) NOT NULL,
++	[C_ZIP] [CHAR](9) NOT NULL,
++	[C_PHONE] [CHAR](16) NOT NULL,
++	[C_SINCE] [SMALLDATETIME] NULL,
++	[C_MIDDLE] [CHAR](2) NOT NULL,
++	[C_DATA] [VARCHAR](500) NOT NULL,
++	PRIMARY KEY (C_W_ID,C_D_ID,C_ID)
++);
++
++-- CREATE INDEXES
++CREATE INDEX IDX_CUSTOMER_NAME ON [DBO].[CUSTOMER] (C_W_ID,C_D_ID,C_LAST,C_FIRST);
+-- 
+1.7.9.5
+

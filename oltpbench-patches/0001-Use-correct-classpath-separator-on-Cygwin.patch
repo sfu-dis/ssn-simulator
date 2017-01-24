@@ -1,0 +1,35 @@
+From 36e8ccddaf1b3d0393da8117908b97c35ab38170 Mon Sep 17 00:00:00 2001
+From: Ryan Johnson <ryan.johnson@cs.utoronto.ca>
+Date: Wed, 19 Mar 2014 09:22:45 -0400
+Subject: [PATCH 01/15] Use correct classpath separator on Cygwin
+
+---
+ classpath.sh |   10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/classpath.sh b/classpath.sh
+index 8a3aac3..65bf3f0 100755
+--- a/classpath.sh
++++ b/classpath.sh
+@@ -1,10 +1,16 @@
++if [ "$(uname -o)" == "Cygwin" ]; then
++    SEP=';'
++else
++    SEP=':'
++fi
++
+ echo -ne "build"
+ for i in `ls lib/*.jar`
+ do
+-echo -ne ":$i"
++echo -ne "$SEP$i"
+ done
+ for i in `ls lib/hibernate/*.jar`
+ do
+-echo -ne ":$i"
++echo -ne "$SEP$i"
+ done
+ 
+-- 
+1.7.9.5
+

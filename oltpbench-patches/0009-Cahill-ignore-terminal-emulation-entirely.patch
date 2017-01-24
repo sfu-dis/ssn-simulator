@@ -1,0 +1,382 @@
+From 38df35c478cba50e3b57677d814db6015cc0d0e2 Mon Sep 17 00:00:00 2001
+From: Ryan <ryan.johnson@cs.utoronto.ca>
+Date: Wed, 26 Mar 2014 11:59:21 -0400
+Subject: [PATCH 09/15] Cahill: ignore terminal emulation entirely
+
+---
+ .../benchmarks/tpcc_plus/procedures/Delivery.java  |   55 +++----
+ .../tpcc_plus/procedures/OrderStatus.java          |   68 ++++-----
+ .../benchmarks/tpcc_plus/procedures/Payment.java   |  150 ++++++++++----------
+ .../tpcc_plus/procedures/StockLevel.java           |   30 ++--
+ 4 files changed, 155 insertions(+), 148 deletions(-)
+
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Delivery.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Delivery.java
+index 93741db..798811e 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Delivery.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Delivery.java
+@@ -181,36 +181,37 @@ public class Delivery extends TPCCProcedure {
+ 
+ 		conn.commit();
+ 
+-		//TODO: This part is not used
+-		StringBuilder terminalMessage = new StringBuilder();
+-		terminalMessage
+-				.append("\n+---------------------------- DELIVERY ---------------------------+\n");
+-		terminalMessage.append(" Date: ");
+-		terminalMessage.append(TPCCUtil.getCurrentTime());
+-		terminalMessage.append("\n\n Warehouse: ");
+-		terminalMessage.append(w_id);
+-		terminalMessage.append("\n Carrier:   ");
+-		terminalMessage.append(o_carrier_id);
+-		terminalMessage.append("\n\n Delivered Orders\n");
+-		int skippedDeliveries = 0;
+-		for (int i = 1; i <= 10; i++) {
++                if(LOG.isTraceEnabled()) {                
++                    StringBuilder terminalMessage = new StringBuilder();
++                    terminalMessage
++                        .append("\n+---------------------------- DELIVERY ---------------------------+\n");
++                    terminalMessage.append(" Date: ");
++                    terminalMessage.append(TPCCUtil.getCurrentTime());
++                    terminalMessage.append("\n\n Warehouse: ");
++                    terminalMessage.append(w_id);
++                    terminalMessage.append("\n Carrier:   ");
++                    terminalMessage.append(o_carrier_id);
++                    terminalMessage.append("\n\n Delivered Orders\n");
++                    int skippedDeliveries = 0;
++                    for (int i = 1; i <= 10; i++) {
+ 			if (orderIDs[i - 1] >= 0) {
+-				terminalMessage.append("  District ");
+-				terminalMessage.append(i < 10 ? " " : "");
+-				terminalMessage.append(i);
+-				terminalMessage.append(": Order number ");
+-				terminalMessage.append(orderIDs[i - 1]);
+-				terminalMessage.append(" was delivered.\n");
++                            terminalMessage.append("  District ");
++                            terminalMessage.append(i < 10 ? " " : "");
++                            terminalMessage.append(i);
++                            terminalMessage.append(": Order number ");
++                            terminalMessage.append(orderIDs[i - 1]);
++                            terminalMessage.append(" was delivered.\n");
+ 			} else {
+-				terminalMessage.append("  District ");
+-				terminalMessage.append(i < 10 ? " " : "");
+-				terminalMessage.append(i);
+-				terminalMessage.append(": No orders to be delivered.\n");
+-				skippedDeliveries++;
++                            terminalMessage.append("  District ");
++                            terminalMessage.append(i < 10 ? " " : "");
++                            terminalMessage.append(i);
++                            terminalMessage.append(": No orders to be delivered.\n");
++                            skippedDeliveries++;
+ 			}
+-		}
+-		terminalMessage.append("+-----------------------------------------------------------------+\n\n");
+-
++                    }
++                    terminalMessage.append("+-----------------------------------------------------------------+\n\n");
++                }
++                
+ 		return skippedDeliveries;
+ 	}
+ 
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/OrderStatus.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/OrderStatus.java
+index 1aa89d7..0999fa5 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/OrderStatus.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/OrderStatus.java
+@@ -168,30 +168,31 @@ public class OrderStatus extends TPCCProcedure {
+ 				// commit the transaction
+ 				conn.commit();
+ 
+-				StringBuilder terminalMessage = new StringBuilder();
+-				terminalMessage.append("\n");
+-				terminalMessage
+-						.append("+-------------------------- ORDER-STATUS -------------------------+\n");
+-				terminalMessage.append(" Date: ");
+-				terminalMessage.append(TPCCUtil.getCurrentTime());
+-				terminalMessage.append("\n\n Warehouse: ");
+-				terminalMessage.append(w_id);
+-				terminalMessage.append("\n District:  ");
+-				terminalMessage.append(d_id);
+-				terminalMessage.append("\n\n Customer:  ");
+-				terminalMessage.append(c.c_id);
+-				terminalMessage.append("\n   Name:    ");
+-				terminalMessage.append(c.c_first);
+-				terminalMessage.append(" ");
+-				terminalMessage.append(c.c_middle);
+-				terminalMessage.append(" ");
+-				terminalMessage.append(c.c_last);
+-				terminalMessage.append("\n   Balance: ");
+-				terminalMessage.append(c.c_balance);
+-				terminalMessage.append("\n\n");
+-				if (o_id == -1) {
++                                if(LOG.isTraceEnabled()) {                                
++                                    StringBuilder terminalMessage = new StringBuilder();
++                                    terminalMessage.append("\n");
++                                    terminalMessage
++                                        .append("+-------------------------- ORDER-STATUS -------------------------+\n");
++                                    terminalMessage.append(" Date: ");
++                                    terminalMessage.append(TPCCUtil.getCurrentTime());
++                                    terminalMessage.append("\n\n Warehouse: ");
++                                    terminalMessage.append(w_id);
++                                    terminalMessage.append("\n District:  ");
++                                    terminalMessage.append(d_id);
++                                    terminalMessage.append("\n\n Customer:  ");
++                                    terminalMessage.append(c.c_id);
++                                    terminalMessage.append("\n   Name:    ");
++                                    terminalMessage.append(c.c_first);
++                                    terminalMessage.append(" ");
++                                    terminalMessage.append(c.c_middle);
++                                    terminalMessage.append(" ");
++                                    terminalMessage.append(c.c_last);
++                                    terminalMessage.append("\n   Balance: ");
++                                    terminalMessage.append(c.c_balance);
++                                    terminalMessage.append("\n\n");
++                                    if (o_id == -1) {
+ 					terminalMessage.append(" Customer has no orders placed.\n");
+-				} else {
++                                    } else {
+ 					terminalMessage.append(" Order-Number: ");
+ 					terminalMessage.append(o_id);
+ 					terminalMessage.append("\n    Entry-Date: ");
+@@ -200,19 +201,20 @@ public class OrderStatus extends TPCCProcedure {
+ 					terminalMessage.append(o_carrier_id);
+ 					terminalMessage.append("\n\n");
+ 					if (orderLines.size() != 0) {
+-						terminalMessage
+-								.append(" [Supply_W - Item_ID - Qty - Amount - Delivery-Date]\n");
+-						for (String orderLine : orderLines) {
+-							terminalMessage.append(" ");
+-							terminalMessage.append(orderLine);
+-							terminalMessage.append("\n");
+-						}
++                                            terminalMessage
++                                                .append(" [Supply_W - Item_ID - Qty - Amount - Delivery-Date]\n");
++                                            for (String orderLine : orderLines) {
++                                                terminalMessage.append(" ");
++                                                terminalMessage.append(orderLine);
++                                                terminalMessage.append("\n");
++                                            }
+ 					} else {
+ 					    if(LOG.isTraceEnabled()) LOG.trace(" This Order has no Order-Lines.\n");
+ 					}
+-				}
+-				terminalMessage.append("+-----------------------------------------------------------------+\n\n");
+-				if(LOG.isTraceEnabled()) LOG.trace(terminalMessage.toString());
++                                    }
++                                    terminalMessage.append("+-----------------------------------------------------------------+\n\n");
++                                    LOG.trace(terminalMessage.toString());
++                                }
+ 			}
+ 
+ 			//attention this code is repeated in other transacitons... ok for now to allow for separate statements.
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java
+index 062321a..092d803 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java
+@@ -215,86 +215,88 @@ public class Payment extends TPCCProcedure {
+ 
+ 			conn.commit();
+ 
+-			StringBuilder terminalMessage = new StringBuilder();
+-			terminalMessage
+-					.append("\n+---------------------------- PAYMENT ----------------------------+");
+-			terminalMessage.append("\n Date: " + TPCCUtil.getCurrentTime());
+-			terminalMessage.append("\n\n Warehouse: ");
+-			terminalMessage.append(w_id);
+-			terminalMessage.append("\n   Street:  ");
+-			terminalMessage.append(w_street_1);
+-			terminalMessage.append("\n   Street:  ");
+-			terminalMessage.append(w_street_2);
+-			terminalMessage.append("\n   City:    ");
+-			terminalMessage.append(w_city);
+-			terminalMessage.append("   State: ");
+-			terminalMessage.append(w_state);
+-			terminalMessage.append("  Zip: ");
+-			terminalMessage.append(w_zip);
+-			terminalMessage.append("\n\n District:  ");
+-			terminalMessage.append(d_id);
+-			terminalMessage.append("\n   Street:  ");
+-			terminalMessage.append(d_street_1);
+-			terminalMessage.append("\n   Street:  ");
+-			terminalMessage.append(d_street_2);
+-			terminalMessage.append("\n   City:    ");
+-			terminalMessage.append(d_city);
+-			terminalMessage.append("   State: ");
+-			terminalMessage.append(d_state);
+-			terminalMessage.append("  Zip: ");
+-			terminalMessage.append(d_zip);
+-			terminalMessage.append("\n\n Customer:  ");
+-			terminalMessage.append(c.c_id);
+-			terminalMessage.append("\n   Name:    ");
+-			terminalMessage.append(c.c_first);
+-			terminalMessage.append(" ");
+-			terminalMessage.append(c.c_middle);
+-			terminalMessage.append(" ");
+-			terminalMessage.append(c.c_last);
+-			terminalMessage.append("\n   Street:  ");
+-			terminalMessage.append(c.c_street_1);
+-			terminalMessage.append("\n   Street:  ");
+-			terminalMessage.append(c.c_street_2);
+-			terminalMessage.append("\n   City:    ");
+-			terminalMessage.append(c.c_city);
+-			terminalMessage.append("   State: ");
+-			terminalMessage.append(c.c_state);
+-			terminalMessage.append("  Zip: ");
+-			terminalMessage.append(c.c_zip);
+-			terminalMessage.append("\n   Since:   ");
+-			if (c.c_since != null) {
++                        if(LOG.isTraceEnabled()) {
++                            StringBuilder terminalMessage = new StringBuilder();
++                            terminalMessage
++                                .append("\n+---------------------------- PAYMENT ----------------------------+");
++                            terminalMessage.append("\n Date: " + TPCCUtil.getCurrentTime());
++                            terminalMessage.append("\n\n Warehouse: ");
++                            terminalMessage.append(w_id);
++                            terminalMessage.append("\n   Street:  ");
++                            terminalMessage.append(w_street_1);
++                            terminalMessage.append("\n   Street:  ");
++                            terminalMessage.append(w_street_2);
++                            terminalMessage.append("\n   City:    ");
++                            terminalMessage.append(w_city);
++                            terminalMessage.append("   State: ");
++                            terminalMessage.append(w_state);
++                            terminalMessage.append("  Zip: ");
++                            terminalMessage.append(w_zip);
++                            terminalMessage.append("\n\n District:  ");
++                            terminalMessage.append(d_id);
++                            terminalMessage.append("\n   Street:  ");
++                            terminalMessage.append(d_street_1);
++                            terminalMessage.append("\n   Street:  ");
++                            terminalMessage.append(d_street_2);
++                            terminalMessage.append("\n   City:    ");
++                            terminalMessage.append(d_city);
++                            terminalMessage.append("   State: ");
++                            terminalMessage.append(d_state);
++                            terminalMessage.append("  Zip: ");
++                            terminalMessage.append(d_zip);
++                            terminalMessage.append("\n\n Customer:  ");
++                            terminalMessage.append(c.c_id);
++                            terminalMessage.append("\n   Name:    ");
++                            terminalMessage.append(c.c_first);
++                            terminalMessage.append(" ");
++                            terminalMessage.append(c.c_middle);
++                            terminalMessage.append(" ");
++                            terminalMessage.append(c.c_last);
++                            terminalMessage.append("\n   Street:  ");
++                            terminalMessage.append(c.c_street_1);
++                            terminalMessage.append("\n   Street:  ");
++                            terminalMessage.append(c.c_street_2);
++                            terminalMessage.append("\n   City:    ");
++                            terminalMessage.append(c.c_city);
++                            terminalMessage.append("   State: ");
++                            terminalMessage.append(c.c_state);
++                            terminalMessage.append("  Zip: ");
++                            terminalMessage.append(c.c_zip);
++                            terminalMessage.append("\n   Since:   ");
++                            if (c.c_since != null) {
+ 				terminalMessage.append(c.c_since.toString());
+-			} else {
++                            } else {
+ 				terminalMessage.append("");
+-			}
+-			terminalMessage.append("\n   Credit:  ");
+-			terminalMessage.append(c.c_credit);
+-			terminalMessage.append("\n   %Disc:   ");
+-			terminalMessage.append(c.c_discount);
+-			terminalMessage.append("\n   Phone:   ");
+-			terminalMessage.append(c.c_phone);
+-			terminalMessage.append("\n\n Amount Paid:      ");
+-			terminalMessage.append(h_amount);
+-			terminalMessage.append("\n Credit Limit:     ");
+-			terminalMessage.append(c.c_credit_lim);
+-			terminalMessage.append("\n New Cust-Balance: ");
+-			terminalMessage.append(c.c_balance);
+-			if (c.c_credit.equals("BC")) {
++                            }
++                            terminalMessage.append("\n   Credit:  ");
++                            terminalMessage.append(c.c_credit);
++                            terminalMessage.append("\n   %Disc:   ");
++                            terminalMessage.append(c.c_discount);
++                            terminalMessage.append("\n   Phone:   ");
++                            terminalMessage.append(c.c_phone);
++                            terminalMessage.append("\n\n Amount Paid:      ");
++                            terminalMessage.append(h_amount);
++                            terminalMessage.append("\n Credit Limit:     ");
++                            terminalMessage.append(c.c_credit_lim);
++                            terminalMessage.append("\n New Cust-Balance: ");
++                            terminalMessage.append(c.c_balance);
++                            if (c.c_credit.equals("BC")) {
+ 				if (c_data.length() > 50) {
+-					terminalMessage.append("\n\n Cust-Data: "
+-							+ c_data.substring(0, 50));
+-					int data_chunks = c_data.length() > 200 ? 4
+-							: c_data.length() / 50;
+-					for (int n = 1; n < data_chunks; n++)
+-						terminalMessage.append("\n            "
+-								+ c_data.substring(n * 50, (n + 1) * 50));
++                                    terminalMessage.append("\n\n Cust-Data: "
++                                                           + c_data.substring(0, 50));
++                                    int data_chunks = c_data.length() > 200 ? 4
++                                        : c_data.length() / 50;
++                                    for (int n = 1; n < data_chunks; n++)
++                                        terminalMessage.append("\n            "
++                                                               + c_data.substring(n * 50, (n + 1) * 50));
+ 				} else {
+-					terminalMessage.append("\n\n Cust-Data: " + c_data);
++                                    terminalMessage.append("\n\n Cust-Data: " + c_data);
+ 				}
+-			}
+-			terminalMessage.append("\n+-----------------------------------------------------------------+\n\n");
++                            }
++                            terminalMessage.append("\n+-----------------------------------------------------------------+\n\n");
+ 
+-			if(LOG.isTraceEnabled())LOG.trace(terminalMessage.toString());
++                            LOG.trace(terminalMessage.toString());
++                        }
+ 
+ 		}
+ 
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/StockLevel.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/StockLevel.java
+index a411536..e844aeb 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/StockLevel.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/StockLevel.java
+@@ -93,20 +93,22 @@ public class StockLevel extends TPCCProcedure {
+ 			rs.close();
+ 			rs = null;
+ 
+-			StringBuilder terminalMessage = new StringBuilder();
+-			terminalMessage
+-					.append("\n+-------------------------- STOCK-LEVEL --------------------------+");
+-			terminalMessage.append("\n Warehouse: ");
+-			terminalMessage.append(w_id);
+-			terminalMessage.append("\n District:  ");
+-			terminalMessage.append(d_id);
+-			terminalMessage.append("\n\n Stock Level Threshold: ");
+-			terminalMessage.append(threshold);
+-			terminalMessage.append("\n Low Stock Count:       ");
+-			terminalMessage.append(stock_count);
+-			terminalMessage
+-					.append("\n+-----------------------------------------------------------------+\n\n");
+-			if(LOG.isTraceEnabled())LOG.trace(terminalMessage.toString());
++                        if(LOG.isTraceEnabled()) {
++                            StringBuilder terminalMessage = new StringBuilder();
++                            terminalMessage
++                                .append("\n+-------------------------- STOCK-LEVEL --------------------------+");
++                            terminalMessage.append("\n Warehouse: ");
++                            terminalMessage.append(w_id);
++                            terminalMessage.append("\n District:  ");
++                            terminalMessage.append(d_id);
++                            terminalMessage.append("\n\n Stock Level Threshold: ");
++                            terminalMessage.append(threshold);
++                            terminalMessage.append("\n Low Stock Count:       ");
++                            terminalMessage.append(stock_count);
++                            terminalMessage
++                                .append("\n+-----------------------------------------------------------------+\n\n");
++                            LOG.trace(terminalMessage.toString());
++                        }
+ 		}
+ 
+ }
+-- 
+1.7.9.5
+

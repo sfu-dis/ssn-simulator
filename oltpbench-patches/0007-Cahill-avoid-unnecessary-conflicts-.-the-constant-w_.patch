@@ -1,0 +1,112 @@
+From b6fbb91a7c82ec4e3ce937298a5d434db4313cfd Mon Sep 17 00:00:00 2001
+From: Ryan Johnson <ryan.johnson@cs.utoronto.ca>
+Date: Thu, 20 Mar 2014 08:33:57 -0400
+Subject: [PATCH 07/15] Cahill: avoid unnecessary conflicts ... the constant
+ w_tax field in the Warehouse table can be cached by
+ clients
+
+---
+ .../benchmarks/tpcc_plus/TPCCConstants.java        |    1 +
+ .../benchmarks/tpcc_plus/procedures/NewOrder.java  |   34 ++++++++++++++------
+ 2 files changed, 26 insertions(+), 9 deletions(-)
+
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCConstants.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCConstants.java
+index 5a8d186..a4d3c6d 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCConstants.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCConstants.java
+@@ -9,4 +9,5 @@ public abstract class TPCCConstants {
+     public static final String TABLENAME_OPENORDER = "OORDER";
+     public static final String TABLENAME_ORDERLINE = "ORDER_LINE";
+     public static final String TABLENAME_NEWORDER = "NEW_ORDER";
++    public static final int W_TAX_CACHE_SZ = 1000;
+ }
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/NewOrder.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/NewOrder.java
+index d452f27..799c86d 100644
+--- a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/NewOrder.java
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/NewOrder.java
+@@ -18,11 +18,18 @@ import com.oltpbenchmark.benchmarks.tpcc_plus.jTPCCConfig;
+ public class NewOrder extends TPCCProcedure {
+ 
+     private static final Logger LOG = Logger.getLogger(NewOrder.class);
++    private static final float[] W_TAX = new float[TPCCConstants.W_TAX_CACHE_SZ];
+ 
+     public final SQLStmt stmtGetCustWhseSQL = new SQLStmt(
++    		"SELECT C_DISCOUNT, C_LAST, C_CREDIT"
++			+ "  FROM " + TPCCConstants.TABLENAME_CUSTOMER
++			+ " WHERE C_W_ID = ?"
++			+ " AND C_D_ID = ? AND C_ID = ?");
++
++    public final SQLStmt stmtGetCustWhseTaxSQL = new SQLStmt(
+     		"SELECT C_DISCOUNT, C_LAST, C_CREDIT, W_TAX"
+ 			+ "  FROM " + TPCCConstants.TABLENAME_CUSTOMER + ", " + TPCCConstants.TABLENAME_WAREHOUSE
+-			+ " WHERE W_ID = ? AND C_W_ID = ?"
++			+ " WHERE W_ID = ? AND C_W_ID = W_ID"
+ 			+ " AND C_D_ID = ? AND C_ID = ?");
+ 
+     public final SQLStmt stmtGetDistSQL = new SQLStmt(
+@@ -69,9 +76,12 @@ public class NewOrder extends TPCCProcedure {
+ 			TPCCWorker w) throws SQLException {
+ 
+ 
++		// cache W_TAX locally to avoid unnecessary contention
++        	float w_tax = (terminalWarehouseID < TPCCConstants.W_TAX_CACHE_SZ)?
++                	W_TAX[terminalWarehouseID] : 0;
+ 
+ 		//initializing all prepared statements
+-		stmtGetCustWhse=this.getPreparedStatement(conn, stmtGetCustWhseSQL);
++		stmtGetCustWhse=this.getPreparedStatement(conn, (w_tax > 0)? stmtGetCustWhseSQL : stmtGetCustWhseTaxSQL);
+ 		stmtGetDist=this.getPreparedStatement(conn, stmtGetDistSQL);
+ 		stmtInsertNewOrder=this.getPreparedStatement(conn, stmtInsertNewOrderSQL);
+ 		stmtUpdateDist =this.getPreparedStatement(conn, stmtUpdateDistSQL);
+@@ -112,7 +122,8 @@ public class NewOrder extends TPCCProcedure {
+ 
+ 		newOrderTransaction(terminalWarehouseID, districtID,
+ 						customerID, numItems, allLocal, itemIDs,
+-						supplierWarehouseIDs, orderQuantities, conn, w);
++						supplierWarehouseIDs, orderQuantities,
++                                    		w_tax, conn, w);
+ 		return null;
+ 
+     }
+@@ -122,9 +133,10 @@ public class NewOrder extends TPCCProcedure {
+ 
+ 	private void newOrderTransaction(int w_id, int d_id, int c_id,
+ 			int o_ol_cnt, int o_all_local, int[] itemIDs,
+-			int[] supplierWarehouseIDs, int[] orderQuantities, Connection conn, TPCCWorker w)
++			int[] supplierWarehouseIDs, int[] orderQuantities,
++                        float w_tax, Connection conn, TPCCWorker w)
+ 			throws SQLException {
+-		float c_discount, w_tax, d_tax = 0, i_price;
++		float c_discount, d_tax = 0, i_price;
+ 		int d_next_o_id, o_id = -1, s_quantity;
+ 		String c_last = null, c_credit = null, i_name, i_data, s_data;
+ 		String s_dist_01, s_dist_02, s_dist_03, s_dist_04, s_dist_05;
+@@ -140,9 +152,8 @@ public class NewOrder extends TPCCProcedure {
+ 		try
+ 		{
+ 			stmtGetCustWhse.setInt(1, w_id);
+-			stmtGetCustWhse.setInt(2, w_id);
+-			stmtGetCustWhse.setInt(3, d_id);
+-			stmtGetCustWhse.setInt(4, c_id);
++			stmtGetCustWhse.setInt(2, d_id);
++			stmtGetCustWhse.setInt(3, c_id);
+ 			ResultSet rs = stmtGetCustWhse.executeQuery();
+ 			if (!rs.next())
+ 				throw new RuntimeException("W_ID=" + w_id + " C_D_ID=" + d_id
+@@ -150,7 +161,12 @@ public class NewOrder extends TPCCProcedure {
+ 			c_discount = rs.getFloat("C_DISCOUNT");
+ 			c_last = rs.getString("C_LAST");
+ 			c_credit = rs.getString("C_CREDIT");
+-			w_tax = rs.getFloat("W_TAX");
++
++                        // pick up and cache w_tax if not already there
++                        // OK to race because w_tax is read-only in DB
++                        if (w_tax == 0)
++				w_tax = W_TAX[w_id] = rs.getFloat("W_TAX");
++                        
+ 			rs.close();
+ 			rs = null;
+ 
+-- 
+1.7.9.5
+

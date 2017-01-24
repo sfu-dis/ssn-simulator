@@ -1,0 +1,39 @@
+From 98837e17901d55db294a119c19e7c960e3c23e7a Mon Sep 17 00:00:00 2001
+From: Ryan <ryan.johnson@cs.utoronto.ca>
+Date: Wed, 26 Mar 2014 11:57:13 -0400
+Subject: [PATCH 13/15] Fix postgres quoting errors in auctionmark
+
+---
+ .../benchmarks/auctionmark/AuctionMarkLoader.java  |    2 +-
+ .../benchmarks/auctionmark/AuctionMarkProfile.java |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/com/oltpbenchmark/benchmarks/auctionmark/AuctionMarkLoader.java b/src/com/oltpbenchmark/benchmarks/auctionmark/AuctionMarkLoader.java
+index 5b15d74..c6069d8 100644
+--- a/src/com/oltpbenchmark/benchmarks/auctionmark/AuctionMarkLoader.java
++++ b/src/com/oltpbenchmark/benchmarks/auctionmark/AuctionMarkLoader.java
+@@ -227,7 +227,7 @@ public class AuctionMarkLoader extends Loader {
+         final Table catalog_tbl = benchmark.getCatalog().getTable(tableName);
+         assert(catalog_tbl != null) : tableName;
+         final List<Object[]> volt_table = generator.getVoltTable();
+-        final String sql = SQLUtil.getInsertSQL(catalog_tbl);
++        final String sql = SQLUtil.getInsertSQL(catalog_tbl, true);
+         final PreparedStatement stmt = conn.prepareStatement(sql);
+         final int types[] = catalog_tbl.getColumnTypes();
+         
+diff --git a/src/com/oltpbenchmark/benchmarks/auctionmark/AuctionMarkProfile.java b/src/com/oltpbenchmark/benchmarks/auctionmark/AuctionMarkProfile.java
+index cc0ceb6..0af69ff 100644
+--- a/src/com/oltpbenchmark/benchmarks/auctionmark/AuctionMarkProfile.java
++++ b/src/com/oltpbenchmark/benchmarks/auctionmark/AuctionMarkProfile.java
+@@ -289,7 +289,7 @@ public class AuctionMarkProfile {
+         // CONFIG_PROFILE
+         Table catalog_tbl = this.benchmark.getCatalog().getTable(AuctionMarkConstants.TABLENAME_CONFIG_PROFILE);
+         assert(catalog_tbl != null);
+-        PreparedStatement stmt = conn.prepareStatement(SQLUtil.getInsertSQL(catalog_tbl));
++        PreparedStatement stmt = conn.prepareStatement(SQLUtil.getInsertSQL(catalog_tbl, true));
+         int param_idx = 1;
+         stmt.setObject(param_idx++, this.scale_factor); // CFP_SCALE_FACTOR
+         stmt.setObject(param_idx++, this.loaderStartTime); // CFP_LOADER_START
+-- 
+1.7.9.5
+

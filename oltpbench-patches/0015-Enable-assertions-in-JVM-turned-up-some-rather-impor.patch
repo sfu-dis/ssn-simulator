@@ -1,0 +1,22 @@
+From 2cea25810aec0da674f72488a096dea88558793b Mon Sep 17 00:00:00 2001
+From: Ryan <ryan.johnson@cs.utoronto.ca>
+Date: Wed, 23 Apr 2014 23:58:57 -0400
+Subject: [PATCH 15/15] Enable assertions in JVM (turned up some rather
+ important problems)
+
+---
+ oltpbenchmark |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/oltpbenchmark b/oltpbenchmark
+index f2d5114..9a286e4 100755
+--- a/oltpbenchmark
++++ b/oltpbenchmark
+@@ -1,3 +1,3 @@
+ #!/bin/bash
+-java -Xmx8G -cp `./classpath.sh bin` -Dlog4j.configuration=log4j.properties com.oltpbenchmark.DBWorkload $@
++java -enableassertions -Xmx8G -cp `./classpath.sh bin` -Dlog4j.configuration=log4j.properties com.oltpbenchmark.DBWorkload $@
+ 
+-- 
+1.7.9.5
+

@@ -1,0 +1,36 @@
+From 7c7437c79fb3e40256b8de1000151befa1ea9159 Mon Sep 17 00:00:00 2001
+From: Ryan <ryan.johnson@cs.utoronto.ca>
+Date: Wed, 26 Mar 2014 11:59:57 -0400
+Subject: [PATCH 03/15] Fix a function overloading bug in benchmark harness
+
+---
+ src/com/oltpbenchmark/util/SQLUtil.java |    6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/com/oltpbenchmark/util/SQLUtil.java b/src/com/oltpbenchmark/util/SQLUtil.java
+index d1c31f3..68e83b9 100644
+--- a/src/com/oltpbenchmark/util/SQLUtil.java
++++ b/src/com/oltpbenchmark/util/SQLUtil.java
+@@ -312,8 +312,8 @@ public abstract class SQLUtil {
+      * one record into this table
+      * @return
+      */
+-    public static String getInsertSQL(Table catalog_tbl) {
+-        return getInsertSQL(catalog_tbl, 1);
++    public static String getInsertSQL(Table catalog_tbl, int...exclude_columns) {
++        return getInsertSQL(catalog_tbl, false, false, 1, exclude_columns);
+     }
+     
+     /**
+@@ -340,7 +340,7 @@ public abstract class SQLUtil {
+     }
+     
+     public static String getInsertSQL(Table catalog_tbl, boolean show_cols, int batchSize, int...exclude_columns) {
+-        return getInsertSQL(catalog_tbl, false, false, batchSize, exclude_columns);
++        return getInsertSQL(catalog_tbl, show_cols, false, batchSize, exclude_columns);
+     }
+     
+     public static String getInsertSQL(Table catalog_tbl, boolean show_cols, boolean escape_names, int batchSize, int...exclude_columns) {
+-- 
+1.7.9.5
+

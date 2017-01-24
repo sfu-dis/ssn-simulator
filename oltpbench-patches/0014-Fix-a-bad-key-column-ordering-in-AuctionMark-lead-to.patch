@@ -1,0 +1,44 @@
+From 068fe74418c6e4f98171f7ee9c695e63b213eb07 Mon Sep 17 00:00:00 2001
+From: Ryan <ryan.johnson@cs.utoronto.ca>
+Date: Thu, 24 Apr 2014 00:02:43 -0400
+Subject: [PATCH 14/15] Fix a bad key column ordering in AuctionMark (lead to
+ scans for primary key lookups)
+
+---
+ .../auctionmark/auctionmark-postgres-ddl.sql       |    6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/com/oltpbenchmark/benchmarks/auctionmark/auctionmark-postgres-ddl.sql b/src/com/oltpbenchmark/benchmarks/auctionmark/auctionmark-postgres-ddl.sql
+index 1e02842..f125ee3 100644
+--- a/src/com/oltpbenchmark/benchmarks/auctionmark/auctionmark-postgres-ddl.sql
++++ b/src/com/oltpbenchmark/benchmarks/auctionmark/auctionmark-postgres-ddl.sql
+@@ -290,7 +290,7 @@ CREATE TABLE "ITEM_BID" (
+     ib_created          TIMESTAMP,
+     ib_updated          TIMESTAMP,
+     FOREIGN KEY (ib_i_id, ib_u_id) REFERENCES "ITEM" (i_id, i_u_id) ON DELETE CASCADE,
+-    PRIMARY KEY (ib_id, ib_i_id, ib_u_id)
++    PRIMARY KEY (ib_i_id, ib_u_id, ib_id)
+ );
+ 
+ -- ================================================================
+@@ -307,7 +307,7 @@ CREATE TABLE "ITEM_MAX_BID" (
+     imb_created         TIMESTAMP,
+     imb_updated         TIMESTAMP,
+     FOREIGN KEY (imb_i_id, imb_u_id) REFERENCES "ITEM" (i_id, i_u_id) ON DELETE CASCADE,
+-    FOREIGN KEY (imb_ib_id, imb_ib_i_id, imb_ib_u_id) REFERENCES "ITEM_BID" (ib_id, ib_i_id, ib_u_id) ON DELETE CASCADE,
++    FOREIGN KEY (imb_ib_i_id, imb_ib_u_id, imb_ib_id) REFERENCES "ITEM_BID" (ib_i_id, ib_u_id, ib_id) ON DELETE CASCADE,
+     PRIMARY KEY (imb_i_id, imb_u_id)
+ );
+ 
+@@ -325,7 +325,7 @@ CREATE TABLE "ITEM_PURCHASE" (
+     ip_ib_i_id          BIGINT NOT NULL,
+     ip_ib_u_id          BIGINT NOT NULL,
+     ip_date             TIMESTAMP,
+-    FOREIGN KEY (ip_ib_id, ip_ib_i_id, ip_ib_u_id) REFERENCES "ITEM_BID" (ib_id, ib_i_id, ib_u_id) ON DELETE CASCADE,
++    FOREIGN KEY (ip_ib_i_id, ip_ib_u_id, ip_ib_id) REFERENCES "ITEM_BID" (ib_i_id, ib_u_id, ib_id) ON DELETE CASCADE,
+     PRIMARY KEY (ip_id, ip_ib_id, ip_ib_i_id, ip_ib_u_id)
+ );
+ 
+-- 
+1.7.9.5
+

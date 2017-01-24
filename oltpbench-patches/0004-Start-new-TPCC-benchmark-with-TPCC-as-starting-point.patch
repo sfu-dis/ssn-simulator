@@ -1,0 +1,5280 @@
+From 0cbd3f6a01aad1a9bb0b1cd95a8e7c00c5e8c51a Mon Sep 17 00:00:00 2001
+From: Ryan Johnson <ryan.johnson@cs.utoronto.ca>
+Date: Wed, 19 Mar 2014 09:27:45 -0400
+Subject: [PATCH 04/15] Start new TPCC++ benchmark with TPCC as starting point
+
+---
+ .../benchmarks/tpcc_plus/TPCCBenchmark.java        |  144 +++
+ .../benchmarks/tpcc_plus/TPCCConstants.java        |   13 +
+ .../benchmarks/tpcc_plus/TPCCLoader.java           | 1129 ++++++++++++++++++++
+ .../benchmarks/tpcc_plus/TPCCUtil.java             |  140 +++
+ .../benchmarks/tpcc_plus/TPCCWorker.java           |  191 ++++
+ .../benchmarks/tpcc_plus/jTPCCConfig.java          |   63 ++
+ .../benchmarks/tpcc_plus/jdbc/ExecJDBC.java        |  195 ++++
+ .../benchmarks/tpcc_plus/jdbc/HSQLDBjdbcIO.java    |  110 ++
+ .../benchmarks/tpcc_plus/jdbc/jdbcIO.java          |  112 ++
+ .../benchmarks/tpcc_plus/pojo/Customer.java        |   94 ++
+ .../benchmarks/tpcc_plus/pojo/District.java        |   62 ++
+ .../benchmarks/tpcc_plus/pojo/History.java         |   44 +
+ .../benchmarks/tpcc_plus/pojo/Item.java            |   38 +
+ .../benchmarks/tpcc_plus/pojo/NewOrder.java        |   37 +
+ .../benchmarks/tpcc_plus/pojo/Oorder.java          |   45 +
+ .../benchmarks/tpcc_plus/pojo/OrderLine.java       |   47 +
+ .../benchmarks/tpcc_plus/pojo/Stock.java           |   83 ++
+ .../benchmarks/tpcc_plus/pojo/Warehouse.java       |   46 +
+ .../benchmarks/tpcc_plus/procedures/Delivery.java  |  219 ++++
+ .../benchmarks/tpcc_plus/procedures/NewOrder.java  |  340 ++++++
+ .../tpcc_plus/procedures/OrderStatus.java          |  256 +++++
+ .../benchmarks/tpcc_plus/procedures/Payment.java   |  404 +++++++
+ .../tpcc_plus/procedures/StockLevel.java           |  112 ++
+ .../tpcc_plus/procedures/TPCCProcedure.java        |   18 +
+ .../benchmarks/tpcc_plus/tpcc-db2-ddl.sql          |  140 +++
+ .../benchmarks/tpcc_plus/tpcc-ddl.sql              |  141 +++
+ .../benchmarks/tpcc_plus/tpcc-dialects.xml         |   64 ++
+ .../benchmarks/tpcc_plus/tpcc-mysql-ddl.sql        |  149 +++
+ .../benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql        |  149 +++
+ .../benchmarks/tpcc_plus/tpcc-oracle-ddl.sql       |  140 +++
+ .../benchmarks/tpcc_plus/tpcc-pg-ddl.sql           |  140 +++
+ .../benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql    |  144 +++
+ 32 files changed, 5009 insertions(+)
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCBenchmark.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCConstants.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCUtil.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCWorker.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/jTPCCConfig.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/ExecJDBC.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/HSQLDBjdbcIO.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/jdbcIO.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Customer.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/District.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/History.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Item.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/NewOrder.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Oorder.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/OrderLine.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Stock.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Warehouse.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Delivery.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/NewOrder.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/OrderStatus.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/StockLevel.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/TPCCProcedure.java
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-db2-ddl.sql
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-ddl.sql
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-dialects.xml
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-mysql-ddl.sql
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-oracle-ddl.sql
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-pg-ddl.sql
+ create mode 100644 src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql
+
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCBenchmark.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCBenchmark.java
+new file mode 100644
+index 0000000..5bbe8d5
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCBenchmark.java
+@@ -0,0 +1,144 @@
++/*******************************************************************************
++ * oltpbenchmark.com
++ *  
++ *  Project Info:  http://oltpbenchmark.com
++ *  Project Members:  	Carlo Curino <carlo.curino@gmail.com>
++ * 				Evan Jones <ej@evanjones.ca>
++ * 				DIFALLAH Djellel Eddine <djelleleddine.difallah@unifr.ch>
++ * 				Andy Pavlo <pavlo@cs.brown.edu>
++ * 				CUDRE-MAUROUX Philippe <philippe.cudre-mauroux@unifr.ch>  
++ *  				Yang Zhang <yaaang@gmail.com> 
++ * 
++ *  This library is free software; you can redistribute it and/or modify it under the terms
++ *  of the GNU General Public License as published by the Free Software Foundation;
++ *  either version 3.0 of the License, or (at your option) any later version.
++ * 
++ *  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
++ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ *  See the GNU Lesser General Public License for more details.
++ ******************************************************************************/
++package com.oltpbenchmark.benchmarks.tpcc;
++
++import static com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig.terminalPrefix;
++
++import java.io.IOException;
++import java.sql.Connection;
++import java.sql.SQLException;
++import java.util.ArrayList;
++import java.util.List;
++
++import org.apache.log4j.Logger;
++
++
++import com.oltpbenchmark.WorkloadConfiguration;
++import com.oltpbenchmark.api.BenchmarkModule;
++import com.oltpbenchmark.api.Loader;
++import com.oltpbenchmark.api.Worker;
++import com.oltpbenchmark.benchmarks.tpcc.procedures.NewOrder;
++import com.oltpbenchmark.util.SimpleSystemPrinter;
++
++public class TPCCBenchmark extends BenchmarkModule {
++    private static final Logger LOG = Logger.getLogger(TPCCBenchmark.class);
++
++	public TPCCBenchmark(WorkloadConfiguration workConf) {
++		super("tpcc", workConf, true);
++	}
++
++	@Override
++	protected Package getProcedurePackageImpl() {
++		return (NewOrder.class.getPackage());
++	}
++
++	/**
++	 * @param Bool
++	 */
++	@Override
++	protected List<Worker> makeWorkersImpl(boolean verbose) throws IOException {
++		// HACK: Turn off terminal messages
++		jTPCCConfig.TERMINAL_MESSAGES = false;
++		ArrayList<Worker> workers = new ArrayList<Worker>();
++
++		try {
++			List<TPCCWorker> terminals = createTerminals();
++			workers.addAll(terminals);
++		} catch (Exception e) {
++			e.printStackTrace();
++		}
++
++		return workers;
++	}
++
++	@Override
++	protected Loader makeLoaderImpl(Connection conn) throws SQLException {
++		return new TPCCLoader(this, conn);
++	}
++
++	protected ArrayList<TPCCWorker> createTerminals() throws SQLException {
++
++		TPCCWorker[] terminals = new TPCCWorker[workConf.getTerminals()];
++
++		int numWarehouses = (int) workConf.getScaleFactor();//tpccConf.getNumWarehouses();
++		int numTerminals = workConf.getTerminals();
++		assert (numTerminals >= numWarehouses) :
++		    String.format("Insufficient number of terminals '%d' [numWarehouses=%d]",
++		                  numTerminals, numWarehouses);
++
++		String[] terminalNames = new String[numTerminals];
++		// TODO: This is currently broken: fix it!
++		int warehouseOffset = Integer.getInteger("warehouseOffset", 1);
++		assert warehouseOffset == 1;
++
++		// We distribute terminals evenly across the warehouses
++		// Eg. if there are 10 terminals across 7 warehouses, they
++		// are distributed as
++		// 1, 1, 2, 1, 2, 1, 2
++		final double terminalsPerWarehouse = (double) numTerminals
++				/ numWarehouses;
++		assert terminalsPerWarehouse >= 1;
++		for (int w = 0; w < numWarehouses; w++) {
++			// Compute the number of terminals in *this* warehouse
++			int lowerTerminalId = (int) (w * terminalsPerWarehouse);
++			int upperTerminalId = (int) ((w + 1) * terminalsPerWarehouse);
++			// protect against double rounding errors
++			int w_id = w + 1;
++			if (w_id == numWarehouses)
++				upperTerminalId = numTerminals;
++			int numWarehouseTerminals = upperTerminalId - lowerTerminalId;
++
++			LOG.info(String.format("w_id %d = %d terminals [lower=%d / upper%d]",
++			                       w_id, numWarehouseTerminals, lowerTerminalId, upperTerminalId));
++
++			final double districtsPerTerminal = jTPCCConfig.configDistPerWhse
++					/ (double) numWarehouseTerminals;
++			assert districtsPerTerminal >= 1 :
++			    String.format("Too many terminals [districtsPerTerminal=%.2f, numWarehouseTerminals=%d]",
++			                  districtsPerTerminal, numWarehouseTerminals);
++			for (int terminalId = 0; terminalId < numWarehouseTerminals; terminalId++) {
++				int lowerDistrictId = (int) (terminalId * districtsPerTerminal);
++				int upperDistrictId = (int) ((terminalId + 1) * districtsPerTerminal);
++				if (terminalId + 1 == numWarehouseTerminals) {
++					upperDistrictId = jTPCCConfig.configDistPerWhse;
++				}
++				lowerDistrictId += 1;
++
++				String terminalName = terminalPrefix + "w" + w_id + "d"
++						+ lowerDistrictId + "-" + upperDistrictId;
++
++				TPCCWorker terminal = new TPCCWorker(terminalName, w_id,
++						lowerDistrictId, upperDistrictId, this,
++						new SimpleSystemPrinter(null), new SimpleSystemPrinter(
++								System.err), numWarehouses);
++				terminals[lowerTerminalId + terminalId] = terminal;
++				terminalNames[lowerTerminalId + terminalId] = terminalName;
++			}
++
++		}
++		assert terminals[terminals.length - 1] != null;
++
++		ArrayList<TPCCWorker> ret = new ArrayList<TPCCWorker>();
++		for (TPCCWorker w : terminals)
++			ret.add(w);
++		return ret;
++	}
++
++}
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCConstants.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCConstants.java
+new file mode 100644
+index 0000000..9830f4f
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCConstants.java
+@@ -0,0 +1,13 @@
++package com.oltpbenchmark.benchmarks.tpcc;
++
++public abstract class TPCCConstants {
++    public static final String TABLENAME_DISTRICT = "DISTRICT";
++    public static final String TABLENAME_WAREHOUSE = "WAREHOUSE";
++    public static final String TABLENAME_ITEM = "ITEM";
++    public static final String TABLENAME_STOCK = "STOCK";
++    public static final String TABLENAME_CUSTOMER = "CUSTOMER";
++    public static final String TABLENAME_HISTORY = "HISTORY";
++    public static final String TABLENAME_OPENORDER = "OORDER";
++    public static final String TABLENAME_ORDERLINE = "ORDER_LINE";
++    public static final String TABLENAME_NEWORDER = "NEW_ORDER";
++}
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java
+new file mode 100644
+index 0000000..ca4a1bd
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCLoader.java
+@@ -0,0 +1,1129 @@
++/*******************************************************************************
++ * oltpbenchmark.com
++ *  
++ *  Project Info:  http://oltpbenchmark.com
++ *  Project Members:  	Carlo Curino <carlo.curino@gmail.com>
++ * 				Evan Jones <ej@evanjones.ca>
++ * 				DIFALLAH Djellel Eddine <djelleleddine.difallah@unifr.ch>
++ * 				Andy Pavlo <pavlo@cs.brown.edu>
++ * 				CUDRE-MAUROUX Philippe <philippe.cudre-mauroux@unifr.ch>  
++ *  				Yang Zhang <yaaang@gmail.com> 
++ * 
++ *  This library is free software; you can redistribute it and/or modify it under the terms
++ *  of the GNU General Public License as published by the Free Software Foundation;
++ *  either version 3.0 of the License, or (at your option) any later version.
++ * 
++ *  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
++ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ *  See the GNU Lesser General Public License for more details.
++ ******************************************************************************/
++package com.oltpbenchmark.benchmarks.tpcc;
++
++/*
++ * Copyright (C) 2004-2006, Denis Lussier
++ *
++ * LoadData - Load Sample Data directly into database tables or create CSV files for
++ *            each table that can then be bulk loaded (again & again & again ...)  :-)
++ *
++ *    Two optional parameter sets for the command line:
++ *
++ *                 numWarehouses=9999
++ *
++ *                 fileLocation=c:/temp/csv/
++ *
++ *    "numWarehouses" defaults to "1" and when "fileLocation" is omitted the generated
++ *    data is loaded into the database tables directly.
++ *
++ */
++
++import static com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig.configCommitCount;
++import static com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig.configCustPerDist;
++import static com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig.configDistPerWhse;
++import static com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig.configItemCount;
++import static com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig.configWhseCount;
++
++import java.io.FileOutputStream;
++import java.io.PrintWriter;
++import java.sql.Connection;
++import java.sql.PreparedStatement;
++import java.sql.SQLException;
++import java.sql.Timestamp;
++import java.util.Random;
++
++import org.apache.log4j.Logger;
++
++import com.oltpbenchmark.api.Loader;
++import com.oltpbenchmark.benchmarks.tpcc.jdbc.jdbcIO;
++import com.oltpbenchmark.benchmarks.tpcc.pojo.Customer;
++import com.oltpbenchmark.benchmarks.tpcc.pojo.District;
++import com.oltpbenchmark.benchmarks.tpcc.pojo.History;
++import com.oltpbenchmark.benchmarks.tpcc.pojo.Item;
++import com.oltpbenchmark.benchmarks.tpcc.pojo.NewOrder;
++import com.oltpbenchmark.benchmarks.tpcc.pojo.Oorder;
++import com.oltpbenchmark.benchmarks.tpcc.pojo.OrderLine;
++import com.oltpbenchmark.benchmarks.tpcc.pojo.Stock;
++import com.oltpbenchmark.benchmarks.tpcc.pojo.Warehouse;
++import com.oltpbenchmark.catalog.Table;
++import com.oltpbenchmark.util.SQLUtil;
++
++public class TPCCLoader extends Loader{
++    private static final Logger LOG = Logger.getLogger(TPCCLoader.class);
++
++	public TPCCLoader(TPCCBenchmark benchmark, Connection c) {
++		super(benchmark, c);
++        numWarehouses = (int)Math.round(configWhseCount * this.scaleFactor);
++        if (numWarehouses == 0) {
++            //where would be fun in that?
++            numWarehouses = 1;
++        }
++        outputFiles= false;
++	}
++
++	static boolean fastLoad;
++	static String fastLoaderBaseDir;
++
++	// ********** general vars **********************************
++	private static java.util.Date now = null;
++	private static java.util.Date startDate = null;
++	private static java.util.Date endDate = null;
++
++	private static Random gen;
++	private static int numWarehouses = 0;
++	private static String fileLocation = "";
++	private static boolean outputFiles = false;
++	private static PrintWriter out = null;
++	private static long lastTimeMS = 0;
++
++	private static final int FIRST_UNPROCESSED_O_ID = 2101;
++	
++	private PreparedStatement getInsertStatement(String tableName) throws SQLException {
++        Table catalog_tbl = this.getTableCatalog(tableName);
++        assert(catalog_tbl != null);
++        String sql = SQLUtil.getInsertSQL(catalog_tbl);
++        PreparedStatement stmt = this.conn.prepareStatement(sql);
++        return stmt;
++	}
++
++	protected void transRollback() {
++		if (outputFiles == false) {
++			try {
++				conn.rollback();
++			} catch (SQLException se) {
++				LOG.debug(se.getMessage());
++			}
++		} else {
++			out.close();
++		}
++	}
++
++	protected void transCommit() {
++		if (outputFiles == false) {
++			try {
++				conn.commit();
++			} catch (SQLException se) {
++				LOG.debug(se.getMessage());
++				transRollback();
++			}
++		} else {
++			out.close();
++		}
++	}
++
++	protected void truncateTable(String strTable) {
++
++		LOG.debug("Truncating '" + strTable + "' ...");
++		try {
++			this.conn.createStatement().execute("TRUNCATE TABLE " + strTable);
++			transCommit();
++		} catch (SQLException se) {
++			LOG.debug(se.getMessage());
++			transRollback();
++		}
++
++	}
++
++	protected int loadItem(int itemKount) {
++
++		int k = 0;
++		int t = 0;
++		int randPct = 0;
++		int len = 0;
++		int startORIGINAL = 0;
++		
++
++		try {
++		    PreparedStatement itemPrepStmt = getInsertStatement(TPCCConstants.TABLENAME_ITEM);
++
++			now = new java.util.Date();
++			t = itemKount;
++			LOG.debug("\nStart Item Load for " + t + " Items @ " + now
++					+ " ...");
++
++			if (outputFiles == true) {
++				out = new PrintWriter(new FileOutputStream(fileLocation
++						+ "item.csv"));
++				LOG.debug("\nWriting Item file to: " + fileLocation
++						+ "item.csv");
++			}
++
++			Item item = new Item();
++
++			for (int i = 1; i <= itemKount; i++) {
++
++				item.i_id = i;
++				item.i_name = TPCCUtil.randomStr(TPCCUtil.randomNumber(14, 24,
++						gen));
++				item.i_price = (float) (TPCCUtil.randomNumber(100, 10000, gen) / 100.0);
++
++				// i_data
++				randPct = TPCCUtil.randomNumber(1, 100, gen);
++				len = TPCCUtil.randomNumber(26, 50, gen);
++				if (randPct > 10) {
++					// 90% of time i_data isa random string of length [26 .. 50]
++					item.i_data = TPCCUtil.randomStr(len);
++				} else {
++					// 10% of time i_data has "ORIGINAL" crammed somewhere in
++					// middle
++					startORIGINAL = TPCCUtil.randomNumber(2, (len - 8), gen);
++					item.i_data = TPCCUtil.randomStr(startORIGINAL - 1)
++							+ "ORIGINAL"
++							+ TPCCUtil.randomStr(len - startORIGINAL - 9);
++				}
++
++				item.i_im_id = TPCCUtil.randomNumber(1, 10000, gen);
++
++				k++;
++
++				if (outputFiles == false) {
++					itemPrepStmt.setLong(1, item.i_id);
++					itemPrepStmt.setString(2, item.i_name);
++					itemPrepStmt.setDouble(3, item.i_price);
++					itemPrepStmt.setString(4, item.i_data);
++					itemPrepStmt.setLong(5, item.i_im_id);
++					itemPrepStmt.addBatch();
++
++					if ((k % configCommitCount) == 0) {
++						long tmpTime = new java.util.Date().getTime();
++						String etStr = "  Elasped Time(ms): "
++								+ ((tmpTime - lastTimeMS) / 1000.000)
++								+ "                    ";
++						LOG.debug(etStr.substring(0, 30)
++								+ "  Writing record " + k + " of " + t);
++						lastTimeMS = tmpTime;
++						itemPrepStmt.executeBatch();
++						itemPrepStmt.clearBatch();
++						transCommit();
++					}
++				} else {
++					String str = "";
++					str = str + item.i_id + ",";
++					str = str + item.i_name + ",";
++					str = str + item.i_price + ",";
++					str = str + item.i_data + ",";
++					str = str + item.i_im_id;
++					out.println(str);
++
++					if ((k % configCommitCount) == 0) {
++						long tmpTime = new java.util.Date().getTime();
++						String etStr = "  Elasped Time(ms): "
++								+ ((tmpTime - lastTimeMS) / 1000.000)
++								+ "                    ";
++						LOG.debug(etStr.substring(0, 30)
++								+ "  Writing record " + k + " of " + t);
++						lastTimeMS = tmpTime;
++					}
++				}
++
++			} // end for
++
++			long tmpTime = new java.util.Date().getTime();
++			String etStr = "  Elasped Time(ms): "
++					+ ((tmpTime - lastTimeMS) / 1000.000)
++					+ "                    ";
++			LOG.debug(etStr.substring(0, 30) + "  Writing record " + k
++					+ " of " + t);
++			lastTimeMS = tmpTime;
++
++			if (outputFiles == false) {
++				itemPrepStmt.executeBatch();
++			}
++
++			transCommit();
++			now = new java.util.Date();
++			LOG.debug("End Item Load @  " + now);
++
++		} catch (SQLException se) {
++			LOG.debug(se.getMessage());
++			transRollback();
++		} catch (Exception e) {
++			e.printStackTrace();
++			transRollback();
++		}
++
++		return (k);
++
++	} // end loadItem()
++
++	protected int loadWhse(int whseKount) {
++
++		try {
++		    
++		    PreparedStatement whsePrepStmt = getInsertStatement(TPCCConstants.TABLENAME_WAREHOUSE);
++
++			now = new java.util.Date();
++			LOG.debug("\nStart Whse Load for " + whseKount
++					+ " Whses @ " + now + " ...");
++
++			if (outputFiles == true) {
++				out = new PrintWriter(new FileOutputStream(fileLocation
++						+ "warehouse.csv"));
++				LOG.debug("\nWriting Warehouse file to: "
++						+ fileLocation + "warehouse.csv");
++			}
++
++			Warehouse warehouse = new Warehouse();
++			for (int i = 1; i <= whseKount; i++) {
++
++				warehouse.w_id = i;
++				warehouse.w_ytd = 300000;
++
++				// random within [0.0000 .. 0.2000]
++				warehouse.w_tax = (float) ((TPCCUtil.randomNumber(0, 2000, gen)) / 10000.0);
++
++				warehouse.w_name = TPCCUtil.randomStr(TPCCUtil.randomNumber(6,
++						10, gen));
++				warehouse.w_street_1 = TPCCUtil.randomStr(TPCCUtil
++						.randomNumber(10, 20, gen));
++				warehouse.w_street_2 = TPCCUtil.randomStr(TPCCUtil
++						.randomNumber(10, 20, gen));
++				warehouse.w_city = TPCCUtil.randomStr(TPCCUtil.randomNumber(10,
++						20, gen));
++				warehouse.w_state = TPCCUtil.randomStr(3).toUpperCase();
++				warehouse.w_zip = "123456789";
++
++				if (outputFiles == false) {
++					whsePrepStmt.setLong(1, warehouse.w_id);
++					whsePrepStmt.setDouble(2, warehouse.w_ytd);
++					whsePrepStmt.setDouble(3, warehouse.w_tax);
++					whsePrepStmt.setString(4, warehouse.w_name);
++					whsePrepStmt.setString(5, warehouse.w_street_1);
++					whsePrepStmt.setString(6, warehouse.w_street_2);
++					whsePrepStmt.setString(7, warehouse.w_city);
++					whsePrepStmt.setString(8, warehouse.w_state);
++					whsePrepStmt.setString(9, warehouse.w_zip);
++					whsePrepStmt.executeUpdate();
++				} else {
++					String str = "";
++					str = str + warehouse.w_id + ",";
++					str = str + warehouse.w_ytd + ",";
++					str = str + warehouse.w_tax + ",";
++					str = str + warehouse.w_name + ",";
++					str = str + warehouse.w_street_1 + ",";
++					str = str + warehouse.w_street_2 + ",";
++					str = str + warehouse.w_city + ",";
++					str = str + warehouse.w_state + ",";
++					str = str + warehouse.w_zip;
++					out.println(str);
++				}
++
++			} // end for
++
++			transCommit();
++			now = new java.util.Date();
++
++			long tmpTime = new java.util.Date().getTime();
++			LOG.debug("Elasped Time(ms): "
++					+ ((tmpTime - lastTimeMS) / 1000.000));
++			lastTimeMS = tmpTime;
++			LOG.debug("End Whse Load @  " + now);
++
++		} catch (SQLException se) {
++			LOG.debug(se.getMessage());
++			transRollback();
++		} catch (Exception e) {
++			e.printStackTrace();
++			transRollback();
++		}
++
++		return (whseKount);
++
++	} // end loadWhse()
++
++	protected int loadStock(int whseKount, int itemKount) {
++
++		int k = 0;
++		int t = 0;
++		int randPct = 0;
++		int len = 0;
++		int startORIGINAL = 0;
++
++		try {
++		    
++		    PreparedStatement stckPrepStmt = getInsertStatement(TPCCConstants.TABLENAME_STOCK);
++
++			now = new java.util.Date();
++			t = (whseKount * itemKount);
++			LOG.debug("\nStart Stock Load for " + t + " units @ "
++					+ now + " ...");
++
++			if (outputFiles == true) {
++				out = new PrintWriter(new FileOutputStream(fileLocation
++						+ "stock.csv"));
++				LOG.debug("\nWriting Stock file to: " + fileLocation
++						+ "stock.csv");
++			}
++
++			Stock stock = new Stock();
++
++			for (int i = 1; i <= itemKount; i++) {
++
++				for (int w = 1; w <= whseKount; w++) {
++
++					stock.s_i_id = i;
++					stock.s_w_id = w;
++					stock.s_quantity = TPCCUtil.randomNumber(10, 100, gen);
++					stock.s_ytd = 0;
++					stock.s_order_cnt = 0;
++					stock.s_remote_cnt = 0;
++
++					// s_data
++					randPct = TPCCUtil.randomNumber(1, 100, gen);
++					len = TPCCUtil.randomNumber(26, 50, gen);
++					if (randPct > 10) {
++						// 90% of time i_data isa random string of length [26 ..
++						// 50]
++						stock.s_data = TPCCUtil.randomStr(len);
++					} else {
++						// 10% of time i_data has "ORIGINAL" crammed somewhere
++						// in middle
++						startORIGINAL = TPCCUtil
++								.randomNumber(2, (len - 8), gen);
++						stock.s_data = TPCCUtil.randomStr(startORIGINAL - 1)
++								+ "ORIGINAL"
++								+ TPCCUtil.randomStr(len - startORIGINAL - 9);
++					}
++
++					stock.s_dist_01 = TPCCUtil.randomStr(24);
++					stock.s_dist_02 = TPCCUtil.randomStr(24);
++					stock.s_dist_03 = TPCCUtil.randomStr(24);
++					stock.s_dist_04 = TPCCUtil.randomStr(24);
++					stock.s_dist_05 = TPCCUtil.randomStr(24);
++					stock.s_dist_06 = TPCCUtil.randomStr(24);
++					stock.s_dist_07 = TPCCUtil.randomStr(24);
++					stock.s_dist_08 = TPCCUtil.randomStr(24);
++					stock.s_dist_09 = TPCCUtil.randomStr(24);
++					stock.s_dist_10 = TPCCUtil.randomStr(24);
++
++					k++;
++					if (outputFiles == false) {
++						stckPrepStmt.setLong(1, stock.s_w_id);
++						stckPrepStmt.setLong(2, stock.s_i_id);
++						stckPrepStmt.setLong(3, stock.s_quantity);
++						stckPrepStmt.setDouble(4, stock.s_ytd);
++						stckPrepStmt.setLong(5, stock.s_order_cnt);
++						stckPrepStmt.setLong(6, stock.s_remote_cnt);
++						stckPrepStmt.setString(7, stock.s_data);
++						stckPrepStmt.setString(8, stock.s_dist_01);
++						stckPrepStmt.setString(9, stock.s_dist_02);
++						stckPrepStmt.setString(10, stock.s_dist_03);
++						stckPrepStmt.setString(11, stock.s_dist_04);
++						stckPrepStmt.setString(12, stock.s_dist_05);
++						stckPrepStmt.setString(13, stock.s_dist_06);
++						stckPrepStmt.setString(14, stock.s_dist_07);
++						stckPrepStmt.setString(15, stock.s_dist_08);
++						stckPrepStmt.setString(16, stock.s_dist_09);
++						stckPrepStmt.setString(17, stock.s_dist_10);
++						stckPrepStmt.addBatch();
++						if ((k % configCommitCount) == 0) {
++							long tmpTime = new java.util.Date().getTime();
++							String etStr = "  Elasped Time(ms): "
++									+ ((tmpTime - lastTimeMS) / 1000.000)
++									+ "                    ";
++							LOG.debug(etStr.substring(0, 30)
++									+ "  Writing record " + k + " of " + t);
++							lastTimeMS = tmpTime;
++							stckPrepStmt.executeBatch();
++							stckPrepStmt.clearBatch();
++							transCommit();
++						}
++					} else {
++						String str = "";
++						str = str + stock.s_i_id + ",";
++						str = str + stock.s_w_id + ",";
++						str = str + stock.s_quantity + ",";
++						str = str + stock.s_ytd + ",";
++						str = str + stock.s_order_cnt + ",";
++						str = str + stock.s_remote_cnt + ",";
++						str = str + stock.s_data + ",";
++						str = str + stock.s_dist_01 + ",";
++						str = str + stock.s_dist_02 + ",";
++						str = str + stock.s_dist_03 + ",";
++						str = str + stock.s_dist_04 + ",";
++						str = str + stock.s_dist_05 + ",";
++						str = str + stock.s_dist_06 + ",";
++						str = str + stock.s_dist_07 + ",";
++						str = str + stock.s_dist_08 + ",";
++						str = str + stock.s_dist_09 + ",";
++						str = str + stock.s_dist_10;
++						out.println(str);
++
++						if ((k % configCommitCount) == 0) {
++							long tmpTime = new java.util.Date().getTime();
++							String etStr = "  Elasped Time(ms): "
++									+ ((tmpTime - lastTimeMS) / 1000.000)
++									+ "                    ";
++							LOG.debug(etStr.substring(0, 30)
++									+ "  Writing record " + k + " of " + t);
++							lastTimeMS = tmpTime;
++						}
++					}
++
++				} // end for [w]
++
++			} // end for [i]
++
++			long tmpTime = new java.util.Date().getTime();
++			String etStr = "  Elasped Time(ms): "
++					+ ((tmpTime - lastTimeMS) / 1000.000)
++					+ "                    ";
++			LOG.debug(etStr.substring(0, 30)
++					+ "  Writing final records " + k + " of " + t);
++			lastTimeMS = tmpTime;
++			if (outputFiles == false) {
++				stckPrepStmt.executeBatch();
++			}
++			transCommit();
++
++			now = new java.util.Date();
++			LOG.debug("End Stock Load @  " + now);
++
++		} catch (SQLException se) {
++			LOG.debug(se.getMessage());
++			transRollback();
++
++		} catch (Exception e) {
++			e.printStackTrace();
++			transRollback();
++		}
++
++		return (k);
++
++	} // end loadStock()
++
++	protected int loadDist(int whseKount, int distWhseKount) {
++
++		int k = 0;
++		int t = 0;
++
++		try {
++
++		    String sql = SQLUtil.getInsertSQL(this.getTableCatalog(TPCCConstants.TABLENAME_DISTRICT));
++		    PreparedStatement distPrepStmt = this.conn.prepareStatement(sql);
++		    
++			now = new java.util.Date();
++
++			if (outputFiles == true) {
++				out = new PrintWriter(new FileOutputStream(fileLocation
++						+ "district.csv"));
++				LOG.debug("\nWriting District file to: "
++						+ fileLocation + "district.csv");
++			}
++
++			District district = new District();
++
++			t = (whseKount * distWhseKount);
++			LOG.debug("\nStart District Data for " + t + " Dists @ "
++					+ now + " ...");
++
++			for (int w = 1; w <= whseKount; w++) {
++
++				for (int d = 1; d <= distWhseKount; d++) {
++				    
++				    
++					district.d_id = d;
++					district.d_w_id = w;
++					district.d_ytd = 30000;
++
++					// random within [0.0000 .. 0.2000]
++					district.d_tax = (float) ((TPCCUtil.randomNumber(0, 2000,
++							gen)) / 10000.0);
++
++					district.d_next_o_id = 3001;
++					district.d_name = TPCCUtil.randomStr(TPCCUtil.randomNumber(
++							6, 10, gen));
++					district.d_street_1 = TPCCUtil.randomStr(TPCCUtil
++							.randomNumber(10, 20, gen));
++					district.d_street_2 = TPCCUtil.randomStr(TPCCUtil
++							.randomNumber(10, 20, gen));
++					district.d_city = TPCCUtil.randomStr(TPCCUtil.randomNumber(
++							10, 20, gen));
++					district.d_state = TPCCUtil.randomStr(3).toUpperCase();
++					district.d_zip = "123456789";
++
++					k++;
++					if (outputFiles == false) {
++						distPrepStmt.setLong(1, district.d_w_id);
++						distPrepStmt.setLong(2, district.d_id);
++						distPrepStmt.setDouble(3, district.d_ytd);
++						distPrepStmt.setDouble(4, district.d_tax);
++						distPrepStmt.setLong(5, district.d_next_o_id);
++						distPrepStmt.setString(6, district.d_name);
++						distPrepStmt.setString(7, district.d_street_1);
++						distPrepStmt.setString(8, district.d_street_2);
++						distPrepStmt.setString(9, district.d_city);
++						distPrepStmt.setString(10, district.d_state);
++						distPrepStmt.setString(11, district.d_zip);
++						distPrepStmt.executeUpdate();
++					} else {
++						String str = "";
++						str = str + district.d_id + ",";
++						str = str + district.d_w_id + ",";
++						str = str + district.d_ytd + ",";
++						str = str + district.d_tax + ",";
++						str = str + district.d_next_o_id + ",";
++						str = str + district.d_name + ",";
++						str = str + district.d_street_1 + ",";
++						str = str + district.d_street_2 + ",";
++						str = str + district.d_city + ",";
++						str = str + district.d_state + ",";
++						str = str + district.d_zip;
++						out.println(str);
++					}
++
++				} // end for [d]
++
++			} // end for [w]
++
++			long tmpTime = new java.util.Date().getTime();
++			String etStr = "  Elasped Time(ms): "
++					+ ((tmpTime - lastTimeMS) / 1000.000)
++					+ "                    ";
++			LOG.debug(etStr.substring(0, 30) + "  Writing record " + k
++					+ " of " + t);
++			lastTimeMS = tmpTime;
++			transCommit();
++			now = new java.util.Date();
++			LOG.debug("End District Load @  " + now);
++
++		} catch (SQLException se) {
++			LOG.debug(se.getMessage());
++			transRollback();
++		} catch (Exception e) {
++			e.printStackTrace();
++			transRollback();
++		}
++
++		return (k);
++
++	} // end loadDist()
++
++	protected int loadCust(int whseKount, int distWhseKount, int custDistKount) {
++
++		int k = 0;
++		int t = 0;
++
++		Customer customer = new Customer();
++		History history = new History();
++		PrintWriter outHist = null;
++
++		try {
++		    PreparedStatement custPrepStmt = getInsertStatement(TPCCConstants.TABLENAME_CUSTOMER);
++		    PreparedStatement histPrepStmt = getInsertStatement(TPCCConstants.TABLENAME_HISTORY);
++
++			now = new java.util.Date();
++
++			if (outputFiles == true) {
++				out = new PrintWriter(new FileOutputStream(fileLocation
++						+ "customer.csv"));
++				LOG.debug("\nWriting Customer file to: "
++						+ fileLocation + "customer.csv");
++				outHist = new PrintWriter(new FileOutputStream(fileLocation
++						+ "cust-hist.csv"));
++				LOG.debug("\nWriting Customer History file to: "
++						+ fileLocation + "cust-hist.csv");
++			}
++
++			t = (whseKount * distWhseKount * custDistKount * 2);
++			LOG.debug("\nStart Cust-Hist Load for " + t
++					+ " Cust-Hists @ " + now + " ...");
++
++			for (int w = 1; w <= whseKount; w++) {
++
++				for (int d = 1; d <= distWhseKount; d++) {
++
++					for (int c = 1; c <= custDistKount; c++) {
++
++						Timestamp sysdate = new java.sql.Timestamp(
++								System.currentTimeMillis());
++
++						customer.c_id = c;
++						customer.c_d_id = d;
++						customer.c_w_id = w;
++
++						// discount is random between [0.0000 ... 0.5000]
++						customer.c_discount = (float) (TPCCUtil.randomNumber(1,
++								5000, gen) / 10000.0);
++
++						if (TPCCUtil.randomNumber(1, 100, gen) <= 10) {
++							customer.c_credit = "BC"; // 10% Bad Credit
++						} else {
++							customer.c_credit = "GC"; // 90% Good Credit
++						}
++						if (c <= 1000) {
++							customer.c_last = TPCCUtil.getLastName(c - 1);
++						} else {
++							customer.c_last = TPCCUtil
++									.getNonUniformRandomLastNameForLoad(gen);
++						}
++						customer.c_first = TPCCUtil.randomStr(TPCCUtil
++								.randomNumber(8, 16, gen));
++						customer.c_credit_lim = 50000;
++
++						customer.c_balance = -10;
++						customer.c_ytd_payment = 10;
++						customer.c_payment_cnt = 1;
++						customer.c_delivery_cnt = 0;
++
++						customer.c_street_1 = TPCCUtil.randomStr(TPCCUtil
++								.randomNumber(10, 20, gen));
++						customer.c_street_2 = TPCCUtil.randomStr(TPCCUtil
++								.randomNumber(10, 20, gen));
++						customer.c_city = TPCCUtil.randomStr(TPCCUtil
++								.randomNumber(10, 20, gen));
++						customer.c_state = TPCCUtil.randomStr(3).toUpperCase();
++						// TPC-C 4.3.2.7: 4 random digits + "11111"
++						customer.c_zip = TPCCUtil.randomNStr(4) + "11111";
++
++						customer.c_phone = TPCCUtil.randomNStr(16);
++
++						customer.c_since = sysdate;
++						customer.c_middle = "OE";
++						customer.c_data = TPCCUtil.randomStr(TPCCUtil
++								.randomNumber(300, 500, gen));
++
++						history.h_c_id = c;
++						history.h_c_d_id = d;
++						history.h_c_w_id = w;
++						history.h_d_id = d;
++						history.h_w_id = w;
++						history.h_date = sysdate;
++						history.h_amount = 10;
++						history.h_data = TPCCUtil.randomStr(TPCCUtil
++								.randomNumber(10, 24, gen));
++
++						k = k + 2;
++						if (outputFiles == false) {
++							custPrepStmt.setLong(1, customer.c_w_id);
++							custPrepStmt.setLong(2, customer.c_d_id);
++							custPrepStmt.setLong(3, customer.c_id);
++							custPrepStmt.setDouble(4, customer.c_discount);
++							custPrepStmt.setString(5, customer.c_credit);
++							custPrepStmt.setString(6, customer.c_last);
++							custPrepStmt.setString(7, customer.c_first);
++							custPrepStmt.setDouble(8, customer.c_credit_lim);
++							custPrepStmt.setDouble(9, customer.c_balance);
++							custPrepStmt.setDouble(10, customer.c_ytd_payment);
++							custPrepStmt.setLong(11, customer.c_payment_cnt);
++							custPrepStmt.setLong(12, customer.c_delivery_cnt);
++							custPrepStmt.setString(13, customer.c_street_1);
++							custPrepStmt.setString(14, customer.c_street_2);
++							custPrepStmt.setString(15, customer.c_city);
++							custPrepStmt.setString(16, customer.c_state);
++							custPrepStmt.setString(17, customer.c_zip);
++							custPrepStmt.setString(18, customer.c_phone);
++
++							custPrepStmt.setTimestamp(19, customer.c_since);
++							custPrepStmt.setString(20, customer.c_middle);
++							custPrepStmt.setString(21, customer.c_data);
++
++							custPrepStmt.addBatch();
++
++							histPrepStmt.setInt(1, history.h_c_id);
++							histPrepStmt.setInt(2, history.h_c_d_id);
++							histPrepStmt.setInt(3, history.h_c_w_id);
++
++							histPrepStmt.setInt(4, history.h_d_id);
++							histPrepStmt.setInt(5, history.h_w_id);
++							histPrepStmt.setTimestamp(6, history.h_date);
++							histPrepStmt.setDouble(7, history.h_amount);
++							histPrepStmt.setString(8, history.h_data);
++
++							histPrepStmt.addBatch();
++
++							if ((k % configCommitCount) == 0) {
++								long tmpTime = new java.util.Date().getTime();
++								String etStr = "  Elasped Time(ms): "
++										+ ((tmpTime - lastTimeMS) / 1000.000)
++										+ "                    ";
++								LOG.debug(etStr.substring(0, 30)
++										+ "  Writing record " + k + " of " + t);
++								lastTimeMS = tmpTime;
++
++								custPrepStmt.executeBatch();
++								histPrepStmt.executeBatch();
++								custPrepStmt.clearBatch();
++								custPrepStmt.clearBatch();
++								transCommit();
++							}
++						} else {
++							String str = "";
++							str = str + customer.c_id + ",";
++							str = str + customer.c_d_id + ",";
++							str = str + customer.c_w_id + ",";
++							str = str + customer.c_discount + ",";
++							str = str + customer.c_credit + ",";
++							str = str + customer.c_last + ",";
++							str = str + customer.c_first + ",";
++							str = str + customer.c_credit_lim + ",";
++							str = str + customer.c_balance + ",";
++							str = str + customer.c_ytd_payment + ",";
++							str = str + customer.c_payment_cnt + ",";
++							str = str + customer.c_delivery_cnt + ",";
++							str = str + customer.c_street_1 + ",";
++							str = str + customer.c_street_2 + ",";
++							str = str + customer.c_city + ",";
++							str = str + customer.c_state + ",";
++							str = str + customer.c_zip + ",";
++							str = str + customer.c_phone;
++							out.println(str);
++
++							str = "";
++							str = str + history.h_c_id + ",";
++							str = str + history.h_c_d_id + ",";
++							str = str + history.h_c_w_id + ",";
++							str = str + history.h_d_id + ",";
++							str = str + history.h_w_id + ",";
++							str = str + history.h_date + ",";
++							str = str + history.h_amount + ",";
++							str = str + history.h_data;
++							outHist.println(str);
++
++							if ((k % configCommitCount) == 0) {
++								long tmpTime = new java.util.Date().getTime();
++								String etStr = "  Elasped Time(ms): "
++										+ ((tmpTime - lastTimeMS) / 1000.000)
++										+ "                    ";
++								LOG.debug(etStr.substring(0, 30)
++										+ "  Writing record " + k + " of " + t);
++								lastTimeMS = tmpTime;
++
++							}
++						}
++
++					} // end for [c]
++
++				} // end for [d]
++
++			} // end for [w]
++
++			long tmpTime = new java.util.Date().getTime();
++			String etStr = "  Elasped Time(ms): "
++					+ ((tmpTime - lastTimeMS) / 1000.000)
++					+ "                    ";
++			LOG.debug(etStr.substring(0, 30) + "  Writing record " + k
++					+ " of " + t);
++			lastTimeMS = tmpTime;
++			custPrepStmt.executeBatch();
++			histPrepStmt.executeBatch();
++			custPrepStmt.clearBatch();
++			histPrepStmt.clearBatch();
++			transCommit();
++			now = new java.util.Date();
++			if (outputFiles == true) {
++				outHist.close();
++			}
++			LOG.debug("End Cust-Hist Data Load @  " + now);
++
++		} catch (SQLException se) {
++			LOG.debug(se.getMessage());
++			transRollback();
++			if (outputFiles == true) {
++				outHist.close();
++			}
++		} catch (Exception e) {
++			e.printStackTrace();
++			transRollback();
++			if (outputFiles == true) {
++				outHist.close();
++			}
++		}
++
++		return (k);
++
++	} // end loadCust()
++
++	protected int loadOrder(int whseKount, int distWhseKount, int custDistKount) {
++
++		int k = 0;
++		int t = 0;
++		PrintWriter outLine = null;
++		PrintWriter outNewOrder = null;
++
++		try {
++		    PreparedStatement ordrPrepStmt = getInsertStatement(TPCCConstants.TABLENAME_OPENORDER);
++		    PreparedStatement nworPrepStmt = getInsertStatement(TPCCConstants.TABLENAME_NEWORDER);
++		    PreparedStatement orlnPrepStmt = getInsertStatement(TPCCConstants.TABLENAME_ORDERLINE);
++
++			if (outputFiles == true) {
++				out = new PrintWriter(new FileOutputStream(fileLocation
++						+ "order.csv"));
++				LOG.debug("\nWriting Order file to: " + fileLocation
++						+ "order.csv");
++				outLine = new PrintWriter(new FileOutputStream(fileLocation
++						+ "order-line.csv"));
++				LOG.debug("\nWriting Order Line file to: "
++						+ fileLocation + "order-line.csv");
++				outNewOrder = new PrintWriter(new FileOutputStream(fileLocation
++						+ "new-order.csv"));
++				LOG.debug("\nWriting New Order file to: "
++						+ fileLocation + "new-order.csv");
++			}
++
++			now = new java.util.Date();
++			Oorder oorder = new Oorder();
++			NewOrder new_order = new NewOrder();
++			OrderLine order_line = new OrderLine();
++			jdbcIO myJdbcIO = new jdbcIO();
++
++			t = (whseKount * distWhseKount * custDistKount);
++			t = (t * 11) + (t / 3);
++			LOG.debug("whse=" + whseKount + ", dist=" + distWhseKount
++					+ ", cust=" + custDistKount);
++			LOG.debug("\nStart Order-Line-New Load for approx " + t
++					+ " rows @ " + now + " ...");
++
++			for (int w = 1; w <= whseKount; w++) {
++
++				for (int d = 1; d <= distWhseKount; d++) {
++					// TPC-C 4.3.3.1: o_c_id must be a permutation of [1, 3000]
++					int[] c_ids = new int[custDistKount];
++					for (int i = 0; i < custDistKount; ++i) {
++						c_ids[i] = i + 1;
++					}
++					// Collections.shuffle exists, but there is no
++					// Arrays.shuffle
++					for (int i = 0; i < c_ids.length - 1; ++i) {
++						int remaining = c_ids.length - i - 1;
++						int swapIndex = gen.nextInt(remaining) + i + 1;
++						assert i < swapIndex;
++						int temp = c_ids[swapIndex];
++						c_ids[swapIndex] = c_ids[i];
++						c_ids[i] = temp;
++					}
++
++					for (int c = 1; c <= custDistKount; c++) {
++
++						oorder.o_id = c;
++						oorder.o_w_id = w;
++						oorder.o_d_id = d;
++						oorder.o_c_id = c_ids[c - 1];
++						// o_carrier_id is set *only* for orders with ids < 2101
++						// [4.3.3.1]
++						if (oorder.o_id < FIRST_UNPROCESSED_O_ID) {
++							oorder.o_carrier_id = TPCCUtil.randomNumber(1, 10,
++									gen);
++						} else {
++							oorder.o_carrier_id = null;
++						}
++						oorder.o_ol_cnt = TPCCUtil.randomNumber(5, 15, gen);
++						oorder.o_all_local = 1;
++						oorder.o_entry_d = System.currentTimeMillis();
++
++						k++;
++						if (outputFiles == false) {
++							myJdbcIO.insertOrder(ordrPrepStmt, oorder);
++						} else {
++							String str = "";
++							str = str + oorder.o_id + ",";
++							str = str + oorder.o_w_id + ",";
++							str = str + oorder.o_d_id + ",";
++							str = str + oorder.o_c_id + ",";
++							str = str + oorder.o_carrier_id + ",";
++							str = str + oorder.o_ol_cnt + ",";
++							str = str + oorder.o_all_local + ",";
++							Timestamp entry_d = new java.sql.Timestamp(
++									oorder.o_entry_d);
++							str = str + entry_d;
++							out.println(str);
++						}
++
++						// 900 rows in the NEW-ORDER table corresponding to the
++						// last
++						// 900 rows in the ORDER table for that district (i.e.,
++						// with
++						// NO_O_ID between 2,101 and 3,000)
++
++						if (c >= FIRST_UNPROCESSED_O_ID) {
++
++							new_order.no_w_id = w;
++							new_order.no_d_id = d;
++							new_order.no_o_id = c;
++
++							k++;
++							if (outputFiles == false) {
++								myJdbcIO.insertNewOrder(nworPrepStmt, new_order);
++							} else {
++								String str = "";
++								str = str + new_order.no_w_id + ",";
++								str = str + new_order.no_d_id + ",";
++								str = str + new_order.no_o_id;
++								outNewOrder.println(str);
++							}
++
++						} // end new order
++
++						for (int l = 1; l <= oorder.o_ol_cnt; l++) {
++							order_line.ol_w_id = w;
++							order_line.ol_d_id = d;
++							order_line.ol_o_id = c;
++							order_line.ol_number = l; // ol_number
++							order_line.ol_i_id = TPCCUtil.randomNumber(1,
++									100000, gen);
++							if (order_line.ol_o_id < FIRST_UNPROCESSED_O_ID) {
++								order_line.ol_delivery_d = oorder.o_entry_d;
++								order_line.ol_amount = 0;
++							} else {
++								order_line.ol_delivery_d = null;
++								// random within [0.01 .. 9,999.99]
++								order_line.ol_amount = (float) (TPCCUtil
++										.randomNumber(1, 999999, gen) / 100.0);
++							}
++
++							order_line.ol_supply_w_id = order_line.ol_w_id;
++							order_line.ol_quantity = 5;
++							order_line.ol_dist_info = TPCCUtil.randomStr(24);
++
++							k++;
++							if (outputFiles == false) {
++
++								myJdbcIO.insertOrderLine(orlnPrepStmt,
++										order_line);
++							} else {
++								String str = "";
++								str = str + order_line.ol_w_id + ",";
++								str = str + order_line.ol_d_id + ",";
++								str = str + order_line.ol_o_id + ",";
++								str = str + order_line.ol_number + ",";
++								str = str + order_line.ol_i_id + ",";
++								Timestamp delivery_d = new Timestamp(
++										order_line.ol_delivery_d);
++								str = str + delivery_d + ",";
++								str = str + order_line.ol_amount + ",";
++								str = str + order_line.ol_supply_w_id + ",";
++								str = str + order_line.ol_quantity + ",";
++								str = str + order_line.ol_dist_info;
++								outLine.println(str);
++							}
++
++							if ((k % configCommitCount) == 0) {
++								long tmpTime = new java.util.Date().getTime();
++								String etStr = "  Elasped Time(ms): "
++										+ ((tmpTime - lastTimeMS) / 1000.000)
++										+ "                    ";
++								LOG.debug(etStr.substring(0, 30)
++										+ "  Writing record " + k + " of " + t);
++								lastTimeMS = tmpTime;
++								if (outputFiles == false) {
++
++									ordrPrepStmt.executeBatch();
++									nworPrepStmt.executeBatch();
++									orlnPrepStmt.executeBatch();
++									ordrPrepStmt.clearBatch();
++									nworPrepStmt.clearBatch();
++									orlnPrepStmt.clearBatch();
++									transCommit();
++								}
++							}
++
++						} // end for [l]
++
++					} // end for [c]
++
++				} // end for [d]
++
++			} // end for [w]
++
++			LOG.debug("  Writing final records " + k + " of " + t);
++			if (outputFiles == false) {
++			    ordrPrepStmt.executeBatch();
++			    nworPrepStmt.executeBatch();
++			    orlnPrepStmt.executeBatch();
++			} else {
++			    outLine.close();
++			    outNewOrder.close();
++			}
++			transCommit();
++			now = new java.util.Date();
++			LOG.debug("End Orders Load @  " + now);
++
++		} catch (Exception e) {
++			e.printStackTrace();
++			transRollback();
++			if (outputFiles == true) {
++				outLine.close();
++				outNewOrder.close();
++			}
++		}
++
++		return (k);
++
++	} // end loadOrder()
++
++	// This originally used org.apache.commons.lang.NotImplementedException
++	// but I don't get why...
++	public static final class NotImplementedException extends
++			UnsupportedOperationException {
++
++        private static final long serialVersionUID = 1958656852398867984L;
++	}
++
++	@Override
++	public void load() throws SQLException {
++
++		if (outputFiles == false) {
++			// Clearout the tables
++			truncateTable(TPCCConstants.TABLENAME_ITEM);
++			truncateTable(TPCCConstants.TABLENAME_WAREHOUSE);
++			truncateTable(TPCCConstants.TABLENAME_STOCK);
++			truncateTable(TPCCConstants.TABLENAME_DISTRICT);
++			truncateTable(TPCCConstants.TABLENAME_CUSTOMER);
++			truncateTable(TPCCConstants.TABLENAME_HISTORY);
++			truncateTable(TPCCConstants.TABLENAME_OPENORDER);
++			truncateTable(TPCCConstants.TABLENAME_ORDERLINE);
++			truncateTable(TPCCConstants.TABLENAME_NEWORDER);
++		}
++
++		// seed the random number generator
++		gen = new Random(System.currentTimeMillis());
++
++		// ######################### MAINLINE
++		// ######################################
++		startDate = new java.util.Date();
++		LOG.debug("------------- LoadData Start Date = " + startDate
++				+ "-------------");
++
++		long startTimeMS = new java.util.Date().getTime();
++		lastTimeMS = startTimeMS;
++
++		long totalRows = loadWhse(numWarehouses);
++		totalRows += loadItem(configItemCount);
++		totalRows += loadStock(numWarehouses, configItemCount);
++		totalRows += loadDist(numWarehouses, configDistPerWhse);
++		totalRows += loadCust(numWarehouses, configDistPerWhse,
++				configCustPerDist);
++		totalRows += loadOrder(numWarehouses, configDistPerWhse,
++				configCustPerDist);
++
++		long runTimeMS = (new java.util.Date().getTime()) + 1 - startTimeMS;
++		endDate = new java.util.Date();
++		LOG.debug("");
++		LOG.debug("------------- LoadJDBC Statistics --------------------");
++		LOG.debug("     Start Time = " + startDate);
++		LOG.debug("       End Time = " + endDate);
++		LOG.debug("       Run Time = " + (int) runTimeMS / 1000 + " Seconds");
++		LOG.debug("    Rows Loaded = " + totalRows + " Rows");
++		LOG.debug("Rows Per Second = " + (totalRows / (runTimeMS / 1000)) + " Rows/Sec");
++		LOG.debug("------------------------------------------------------");
++	
++	}
++} // end LoadData Class
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCUtil.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCUtil.java
+new file mode 100644
+index 0000000..923e4de
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCUtil.java
+@@ -0,0 +1,140 @@
++/*******************************************************************************
++ * oltpbenchmark.com
++ *  
++ *  Project Info:  http://oltpbenchmark.com
++ *  Project Members:  	Carlo Curino <carlo.curino@gmail.com>
++ * 				Evan Jones <ej@evanjones.ca>
++ * 				DIFALLAH Djellel Eddine <djelleleddine.difallah@unifr.ch>
++ * 				Andy Pavlo <pavlo@cs.brown.edu>
++ * 				CUDRE-MAUROUX Philippe <philippe.cudre-mauroux@unifr.ch>  
++ *  				Yang Zhang <yaaang@gmail.com> 
++ * 
++ *  This library is free software; you can redistribute it and/or modify it under the terms
++ *  of the GNU General Public License as published by the Free Software Foundation;
++ *  either version 3.0 of the License, or (at your option) any later version.
++ * 
++ *  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
++ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ *  See the GNU Lesser General Public License for more details.
++ ******************************************************************************/
++package com.oltpbenchmark.benchmarks.tpcc;
++
++/*
++ * jTPCCUtil - utility functions for the Open Source Java implementation of 
++ *    the TPC-C benchmark
++ *
++ * Copyright (C) 2003, Raul Barbosa
++ * Copyright (C) 2004-2006, Denis Lussier
++ *
++ */
++
++import static com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig.dateFormat;
++import static com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig.nameTokens;
++
++import java.sql.ResultSet;
++import java.sql.SQLException;
++import java.util.Random;
++
++import com.oltpbenchmark.benchmarks.tpcc.pojo.Customer;
++import com.oltpbenchmark.util.RandomGenerator;
++
++public class TPCCUtil {
++
++    /**
++     * Creates a Customer object from the current row in the given ResultSet.
++     * The caller is responsible for closing the ResultSet.
++     * @param rs an open ResultSet positioned to the desired row
++     * @return the newly created Customer object
++     * @throws SQLException for problems getting data from row
++     */
++	public static Customer newCustomerFromResults(ResultSet rs)
++			throws SQLException {
++		Customer c = new Customer();
++		// TODO: Use column indices: probably faster?
++		c.c_first = rs.getString("c_first");
++		c.c_middle = rs.getString("c_middle");
++		c.c_street_1 = rs.getString("c_street_1");
++		c.c_street_2 = rs.getString("c_street_2");
++		c.c_city = rs.getString("c_city");
++		c.c_state = rs.getString("c_state");
++		c.c_zip = rs.getString("c_zip");
++		c.c_phone = rs.getString("c_phone");
++		c.c_credit = rs.getString("c_credit");
++		c.c_credit_lim = rs.getFloat("c_credit_lim");
++		c.c_discount = rs.getFloat("c_discount");
++		c.c_balance = rs.getFloat("c_balance");
++		c.c_ytd_payment = rs.getFloat("c_ytd_payment");
++		c.c_payment_cnt = rs.getInt("c_payment_cnt");
++		c.c_since = rs.getTimestamp("c_since");
++		return c;
++	}
++	private static final RandomGenerator ran = new RandomGenerator(0);
++
++	public static String randomStr(int strLen) {
++	    if (strLen > 1) 
++	        return ran.astring(strLen - 1, strLen - 1);
++	    else
++	        return "";
++	} // end randomStr
++
++	public static String randomNStr(int stringLength) {
++		if (stringLength > 0)
++		    return ran.nstring(stringLength, stringLength);
++		else
++		    return "";
++	}
++
++	public static String getCurrentTime() {
++		return dateFormat.format(new java.util.Date());
++	}
++
++	public static String formattedDouble(double d) {
++		String dS = "" + d;
++		return dS.length() > 6 ? dS.substring(0, 6) : dS;
++	}
++
++	// TODO: TPCC-C 2.1.6: For non-uniform random number generation, the
++	// constants for item id,
++	// customer id and customer name are supposed to be selected ONCE and reused
++	// for all terminals.
++	// We just hardcode one selection of parameters here, but we should generate
++	// these each time.
++	private static final int OL_I_ID_C = 7911; // in range [0, 8191]
++	private static final int C_ID_C = 259; // in range [0, 1023]
++	// NOTE: TPC-C 2.1.6.1 specifies that abs(C_LAST_LOAD_C - C_LAST_RUN_C) must
++	// be within [65, 119]
++	private static final int C_LAST_LOAD_C = 157; // in range [0, 255]
++	private static final int C_LAST_RUN_C = 223; // in range [0, 255]
++
++	public static int getItemID(Random r) {
++		return nonUniformRandom(8191, OL_I_ID_C, 1, 100000, r);
++	}
++
++	public static int getCustomerID(Random r) {
++		return nonUniformRandom(1023, C_ID_C, 1, 3000, r);
++	}
++
++	public static String getLastName(int num) {
++		return nameTokens[num / 100] + nameTokens[(num / 10) % 10]
++				+ nameTokens[num % 10];
++	}
++
++	public static String getNonUniformRandomLastNameForRun(Random r) {
++		return getLastName(nonUniformRandom(255, C_LAST_RUN_C, 0, 999, r));
++	}
++
++	public static String getNonUniformRandomLastNameForLoad(Random r) {
++		return getLastName(nonUniformRandom(255, C_LAST_LOAD_C, 0, 999, r));
++	}
++
++	public static int randomNumber(int min, int max, Random r) {
++		return (int) (r.nextDouble() * (max - min + 1) + min);
++	}
++
++	public static int nonUniformRandom(int A, int C, int min, int max, Random r) {
++		return (((randomNumber(0, A, r) | randomNumber(min, max, r)) + C) % (max
++				- min + 1))
++				+ min;
++	}
++
++} // end jTPCCUtil
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCWorker.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCWorker.java
+new file mode 100644
+index 0000000..603218b
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/TPCCWorker.java
+@@ -0,0 +1,191 @@
++/*******************************************************************************
++ * oltpbenchmark.com
++ *  
++ *  Project Info:  http://oltpbenchmark.com
++ *  Project Members:  	Carlo Curino <carlo.curino@gmail.com>
++ * 				Evan Jones <ej@evanjones.ca>
++ * 				DIFALLAH Djellel Eddine <djelleleddine.difallah@unifr.ch>
++ * 				Andy Pavlo <pavlo@cs.brown.edu>
++ * 				CUDRE-MAUROUX Philippe <philippe.cudre-mauroux@unifr.ch>  
++ *  				Yang Zhang <yaaang@gmail.com> 
++ * 
++ *  This library is free software; you can redistribute it and/or modify it under the terms
++ *  of the GNU General Public License as published by the Free Software Foundation;
++ *  either version 3.0 of the License, or (at your option) any later version.
++ * 
++ *  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
++ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ *  See the GNU Lesser General Public License for more details.
++ ******************************************************************************/
++package com.oltpbenchmark.benchmarks.tpcc;
++
++/*
++ * jTPCCTerminal - Terminal emulator code for jTPCC (transactions)
++ *
++ * Copyright (C) 2003, Raul Barbosa
++ * Copyright (C) 2004-2006, Denis Lussier
++ *
++ */
++
++import java.sql.SQLException;
++import java.util.Random;
++import java.util.concurrent.atomic.AtomicInteger;
++
++import com.oltpbenchmark.api.Procedure.UserAbortException;
++import com.oltpbenchmark.api.TransactionType;
++import com.oltpbenchmark.api.Worker;
++import com.oltpbenchmark.benchmarks.tpcc.procedures.Delivery;
++import com.oltpbenchmark.benchmarks.tpcc.procedures.NewOrder;
++import com.oltpbenchmark.benchmarks.tpcc.procedures.OrderStatus;
++import com.oltpbenchmark.benchmarks.tpcc.procedures.Payment;
++import com.oltpbenchmark.benchmarks.tpcc.procedures.StockLevel;
++import com.oltpbenchmark.benchmarks.tpcc.procedures.TPCCProcedure;
++import com.oltpbenchmark.types.TransactionStatus;
++import com.oltpbenchmark.util.SimplePrinter;
++
++public class TPCCWorker extends Worker {
++
++	// private TransactionTypes transactionTypes;
++
++	private String terminalName;
++
++	private final int terminalWarehouseID;
++	/** Forms a range [lower, upper] (inclusive). */
++	private final int terminalDistrictLowerID;
++	private final int terminalDistrictUpperID;
++	private SimplePrinter terminalOutputArea, errorOutputArea;
++	// private boolean debugMessages;
++	private final Random gen = new Random();
++
++	private int transactionCount = 1, numWarehouses;
++
++	private static final AtomicInteger terminalId = new AtomicInteger(0);
++
++	public TPCCWorker(String terminalName, int terminalWarehouseID,
++			int terminalDistrictLowerID, int terminalDistrictUpperID,
++			TPCCBenchmark benchmarkModule, SimplePrinter terminalOutputArea,
++			SimplePrinter errorOutputArea, int numWarehouses)
++			throws SQLException {
++		super(benchmarkModule, terminalId.getAndIncrement());
++		
++		this.terminalName = terminalName;
++
++		this.terminalWarehouseID = terminalWarehouseID;
++		this.terminalDistrictLowerID = terminalDistrictLowerID;
++		this.terminalDistrictUpperID = terminalDistrictUpperID;
++		assert this.terminalDistrictLowerID >= 1;
++		assert this.terminalDistrictUpperID <= jTPCCConfig.configDistPerWhse;
++		assert this.terminalDistrictLowerID <= this.terminalDistrictUpperID;
++		this.terminalOutputArea = terminalOutputArea;
++		this.errorOutputArea = errorOutputArea;
++		this.numWarehouses = numWarehouses;
++	}
++
++	/**
++	 * Executes a single TPCC transaction of type transactionType.
++	 */
++	@Override
++    protected TransactionStatus executeWork(TransactionType nextTransaction) throws UserAbortException, SQLException {
++        try {
++            TPCCProcedure proc = (TPCCProcedure) this.getProcedure(nextTransaction.getProcedureClass());
++            proc.run(conn, gen, terminalWarehouseID, numWarehouses,
++                    terminalDistrictLowerID, terminalDistrictUpperID, this);
++        } catch (ClassCastException ex){
++            //fail gracefully
++        	System.err.println("We have been invoked with an INVALID transactionType?!");
++        	throw new RuntimeException("Bad transaction type = "+ nextTransaction);
++	    } catch (RuntimeException ex) {
++	        conn.rollback();
++	        return (TransactionStatus.RETRY_DIFFERENT);
++	    }
++		transactionCount++;
++        conn.commit();
++        return (TransactionStatus.SUCCESS);
++	}
++
++//	/**
++//	 * Rolls back the current transaction, then rethrows e if it is not a
++//	 * serialization error. Serialization errors are exceptions caused by
++//	 * deadlock detection, lock wait timeout, or similar.
++//	 * 
++//	 * @param e
++//	 *            Exception to check if it is a serialization error.
++//	 * @throws SQLException
++//	 */
++//	// Lame deadlock profiling: set this to new HashMap<Integer, Integer>() to
++//	// enable.
++//	private final HashMap<Integer, Integer> deadlockLocations = null;
++//
++//	public void rollbackAndHandleError(SQLException e, Connection conn)
++//			throws SQLException {
++//		conn.rollback();
++//
++//		// Unfortunately, JDBC provides no standardized way to do this, so we
++//		// resort to this ugly hack.
++//		boolean isSerialization = false;
++//		if (e.getErrorCode() == 1213 && e.getSQLState().equals("40001")) {
++//			// MySQL serialization
++//			isSerialization = true;
++//			assert e.getMessage()
++//					.equals("Deadlock found when trying to get lock; try restarting transaction");
++//		} else if (e.getErrorCode() == 1205 && e.getSQLState().equals("40001")) {
++//			// SQL Server serialization
++//			isSerialization = true;
++//			assert e.getMessage().equals("Rerun the transaction.");
++//		} else if (e.getErrorCode() == 8177 && e.getSQLState().equals("72000")) {
++//			// Oracle serialization
++//			isSerialization = true;
++//			assert e.getMessage().equals("Rerun the transaction.");
++//		} else if (e.getErrorCode() == 0 && e.getSQLState().equals("40001")) {
++//			// Postgres serialization
++//			isSerialization = true;
++//			assert e.getMessage().equals(
++//					"could not serialize access due to concurrent update");
++//		} else if (e.getErrorCode() == 1205 && e.getSQLState().equals("41000")) {
++//			// TODO: This probably shouldn't really happen?
++//			// FIXME: What is this?
++//			isSerialization = true;
++//			assert e.getMessage().equals(
++//					"Lock wait timeout exceeded; try restarting transaction");
++//		}
++//
++//		// Djellel
++//		// This is to prevent other errors to kill the thread.
++//		// Errors may include -- duplicate key
++//		if (!isSerialization) {
++//			error("Oops SQLException code " + e.getErrorCode() + " state "
++//					+ e.getSQLState() + " message: " + e.getMessage());
++//			// throw e; //Otherwise the benchmark will keep going
++//		}
++//
++//		if (deadlockLocations != null) {
++//			String className = this.getClass().getCanonicalName();
++//			for (StackTraceElement trace : e.getStackTrace()) {
++//				if (trace.getClassName().equals(className)) {
++//					int line = trace.getLineNumber();
++//					Integer count = deadlockLocations.get(line);
++//					if (count == null)
++//						count = 0;
++//
++//					count += 1;
++//					deadlockLocations.put(line, count);
++//					return;
++//				}
++//			}
++//			assert false;
++//		}
++//	}
++//
++//	PreparedStatement customerByName;
++//	boolean isCustomerByName = false;
++//
++//	private void error(String type) {
++//		errorOutputArea.println("[ERROR] TERMINAL=" + terminalName + "  TYPE="
++//				+ type + "  COUNT=" + transactionCount);
++//	}
++//
++//
++//	public Connection getConnection() {
++//		return conn;
++//	}
++}
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/jTPCCConfig.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/jTPCCConfig.java
+new file mode 100644
+index 0000000..a1b45f3
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/jTPCCConfig.java
+@@ -0,0 +1,63 @@
++/*******************************************************************************
++ * oltpbenchmark.com
++ *  
++ *  Project Info:  http://oltpbenchmark.com
++ *  Project Members:  	Carlo Curino <carlo.curino@gmail.com>
++ * 				Evan Jones <ej@evanjones.ca>
++ * 				DIFALLAH Djellel Eddine <djelleleddine.difallah@unifr.ch>
++ * 				Andy Pavlo <pavlo@cs.brown.edu>
++ * 				CUDRE-MAUROUX Philippe <philippe.cudre-mauroux@unifr.ch>  
++ *  				Yang Zhang <yaaang@gmail.com> 
++ * 
++ *  This library is free software; you can redistribute it and/or modify it under the terms
++ *  of the GNU General Public License as published by the Free Software Foundation;
++ *  either version 3.0 of the License, or (at your option) any later version.
++ * 
++ *  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
++ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ *  See the GNU Lesser General Public License for more details.
++ ******************************************************************************/
++package com.oltpbenchmark.benchmarks.tpcc;
++
++/*
++ * jTPCCConfig - Basic configuration parameters for jTPCC
++ *
++ * Copyright (C) 2003, Raul Barbosa
++ * Copyright (C) 2004-2006, Denis Lussier
++ *
++ */
++
++import java.text.SimpleDateFormat;
++
++public final class jTPCCConfig {
++
++	// TODO: This was final; Modified by TPCCRateLimited. Better system?
++	public static boolean TERMINAL_MESSAGES = true;
++
++	public static enum TransactionType {
++		INVALID, // Exists so the order is the same as the constants below
++		NEW_ORDER, PAYMENT, ORDER_STATUS, DELIVERY, STOCK_LEVEL
++	}
++
++	// TODO: Remove these constants
++	public final static int NEW_ORDER = 1, PAYMENT = 2, ORDER_STATUS = 3,
++			DELIVERY = 4, STOCK_LEVEL = 5;
++
++	public final static String[] nameTokens = { "BAR", "OUGHT", "ABLE", "PRI",
++			"PRES", "ESE", "ANTI", "CALLY", "ATION", "EING" };
++
++	public final static String terminalPrefix = "Term-";
++	public final static String reportFilePrefix = "reports/BenchmarkSQL_session_";
++
++	public final static SimpleDateFormat dateFormat = new SimpleDateFormat(
++			"yyyy-MM-dd HH:mm:ss");
++
++	public final static int configCommitCount = 1000; // commit every n records
++	public final static int configWhseCount = 1;
++	public final static int configItemCount = 100000; // tpc-c std = 100,000
++	public final static int configDistPerWhse = 10; // tpc-c std = 10
++	public final static int configCustPerDist = 3000; // tpc-c std = 3,000
++
++	/** An invalid item id used to rollback a new order transaction. */
++	public static final int INVALID_ITEM_ID = -12345;
++}
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/ExecJDBC.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/ExecJDBC.java
+new file mode 100644
+index 0000000..6c08b86
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/ExecJDBC.java
+@@ -0,0 +1,195 @@
++/*******************************************************************************
++ * oltpbenchmark.com
++ *  
++ *  Project Info:  http://oltpbenchmark.com
++ *  Project Members:  	Carlo Curino <carlo.curino@gmail.com>
++ * 				Evan Jones <ej@evanjones.ca>
++ * 				DIFALLAH Djellel Eddine <djelleleddine.difallah@unifr.ch>
++ * 				Andy Pavlo <pavlo@cs.brown.edu>
++ * 				CUDRE-MAUROUX Philippe <philippe.cudre-mauroux@unifr.ch>  
++ *  				Yang Zhang <yaaang@gmail.com> 
++ * 
++ *  This library is free software; you can redistribute it and/or modify it under the terms
++ *  of the GNU General Public License as published by the Free Software Foundation;
++ *  either version 3.0 of the License, or (at your option) any later version.
++ * 
++ *  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
++ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ *  See the GNU Lesser General Public License for more details.
++ ******************************************************************************/
++package com.oltpbenchmark.benchmarks.tpcc.jdbc;
++
++/*
++ * ExecJDBC - Command line program to process SQL DDL statements, from   
++ *             a text input file, to any JDBC Data Source
++ *
++ * Copyright (C) 2004-2006, Denis Lussier
++ *
++ */
++
++import java.io.BufferedReader;
++import java.io.FileInputStream;
++import java.io.FileReader;
++import java.io.IOException;
++import java.sql.Connection;
++import java.sql.DriverManager;
++import java.sql.SQLException;
++import java.sql.Statement;
++import java.util.Properties;
++
++import com.oltpbenchmark.benchmarks.tpcc.TPCCUtil;
++
++
++public class ExecJDBC {
++
++	public static void main(String[] args) {
++
++		Connection conn = null;
++		Statement stmt = null;
++		String rLine = null;
++		StringBuffer sql = new StringBuffer();
++		java.util.Date now = null;
++
++		now = new java.util.Date();
++		System.out.println("------------- ExecJDBC Start Date = " + now
++				+ "-------------");
++
++		try {
++
++			String propsPath = System.getProperty("prop", "");
++			Properties ini;
++			if (propsPath.equals("")) {
++				ini = System.getProperties();
++			} else {
++				ini = new Properties();
++				ini.load(new FileInputStream(System.getProperty("prop")));
++			}
++
++			// display the values we need
++			System.out.println("driver=" + ini.getProperty("driver"));
++			System.out.println("conn=" + ini.getProperty("conn"));
++			System.out.println("user=" + ini.getProperty("user"));
++			System.out.println("password=******");
++
++			// Register jdbcDriver
++			Class.forName(ini.getProperty("driver"));
++
++			// make connection
++			conn = DriverManager.getConnection(ini.getProperty("conn"),
++					ini.getProperty("user"), ini.getProperty("password"));
++			conn.setAutoCommit(true);
++
++			// Create Statement
++			stmt = conn.createStatement();
++
++			// Open inputFile
++			BufferedReader in = new BufferedReader(new FileReader(getSysProp("commandFile", null)));
++			System.out
++					.println("-------------------------------------------------\n");
++
++			// loop thru input file and concatenate SQL statement fragments
++			while ((rLine = in.readLine()) != null) {
++
++				String line = rLine.trim();
++
++				if (line.length() == 0) {
++					System.out.println(""); // print empty line & skip over it
++				} else {
++
++					if (line.startsWith("--")) {
++						System.out.println(line); // print comment line
++					} else {
++						sql.append(line);
++						if (line.endsWith(";")) {
++							execJDBC(stmt, sql);
++							sql = new StringBuffer();
++						} else {
++							sql.append("\n");
++						}
++					}
++
++				} // end if
++
++			} // end while
++
++			in.close();
++
++		} catch (IOException ie) {
++			System.out.println(ie.getMessage());
++
++		} catch (SQLException se) {
++			System.out.println(se.getMessage());
++
++		} catch (Exception e) {
++			e.printStackTrace();
++
++			// exit Cleanly
++		} finally {
++			try {
++				conn.close();
++			} catch (SQLException se) {
++				se.printStackTrace();
++			} // end finally
++
++		} // end try
++
++		now = new java.util.Date();
++		System.out.println("");
++		System.out.println("------------- ExecJDBC End Date = " + now
++				+ "-------------");
++
++	} // end main
++
++	
++	public static String getSysProp(String inSysProperty, String defaultValue) {
++
++		String outPropertyValue = null;
++
++		try {
++			outPropertyValue = System.getProperty(inSysProperty, defaultValue);
++			if (inSysProperty.equals("password")) {
++				System.out.println(inSysProperty + "=*****");
++			} else {
++				System.out.println(inSysProperty + "=" + outPropertyValue);
++			}
++		} catch (Exception e) {
++			System.out.println("Error Reading Required System Property '"
++					+ inSysProperty + "'");
++		}
++
++		return (outPropertyValue);
++
++	} // end getSysProp
++	
++	static void execJDBC(Statement stmt, StringBuffer sql) {
++
++		System.out.println("\n" + sql);
++
++		try {
++
++			long startTimeMS = new java.util.Date().getTime();
++			stmt.execute(sql.toString().replace(';', ' '));
++			long runTimeMS = (new java.util.Date().getTime()) + 1 - startTimeMS;
++			System.out.println("-- SQL Success: Runtime = " + runTimeMS
++					+ " ms --");
++
++		} catch (SQLException se) {
++
++			String msg = null;
++			msg = se.getMessage();
++
++			System.out
++					.println("-- SQL Runtime Exception -----------------------------------------");
++			System.out.println("DBMS SqlCode=" + se.getErrorCode()
++					+ "  DBMS Msg=");
++			System.out
++					.println("  "
++							+ msg
++							+ "\n"
++							+ "------------------------------------------------------------------\n");
++
++		} // end try
++
++	} // end execJDBCCommand
++
++} // end ExecJDBC Class
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/HSQLDBjdbcIO.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/HSQLDBjdbcIO.java
+new file mode 100644
+index 0000000..d335351
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/HSQLDBjdbcIO.java
+@@ -0,0 +1,110 @@
++/*******************************************************************************
++ * oltpbenchmark.com
++ *  
++ *  Project Info:  http://oltpbenchmark.com
++ *  Project Members:  	Carlo Curino <carlo.curino@gmail.com>
++ * 				Evan Jones <ej@evanjones.ca>
++ * 				DIFALLAH Djellel Eddine <djelleleddine.difallah@unifr.ch>
++ * 				Andy Pavlo <pavlo@cs.brown.edu>
++ * 				CUDRE-MAUROUX Philippe <philippe.cudre-mauroux@unifr.ch>  
++ *  				Yang Zhang <yaaang@gmail.com> 
++ * 
++ *  This library is free software; you can redistribute it and/or modify it under the terms
++ *  of the GNU General Public License as published by the Free Software Foundation;
++ *  either version 3.0 of the License, or (at your option) any later version.
++ * 
++ *  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
++ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ *  See the GNU Lesser General Public License for more details.
++ ******************************************************************************/
++package com.oltpbenchmark.benchmarks.tpcc.jdbc;
++
++/*
++ * jdbcIO - execute JDBC statements
++ *
++ * Copyright (C) 2004-2006, Denis Lussier
++ *
++ */
++
++import java.sql.PreparedStatement;
++import java.sql.SQLException;
++import java.sql.Timestamp;
++
++import com.oltpbenchmark.benchmarks.tpcc.pojo.NewOrder;
++import com.oltpbenchmark.benchmarks.tpcc.pojo.Oorder;
++import com.oltpbenchmark.benchmarks.tpcc.pojo.OrderLine;
++
++
++public class HSQLDBjdbcIO {
++
++	public void insertOrder(PreparedStatement ordrPrepStmt, Oorder oorder) {
++
++		try {
++
++			ordrPrepStmt.setInt(1, oorder.o_id);
++			ordrPrepStmt.setInt(2, oorder.o_w_id);
++			ordrPrepStmt.setInt(3, oorder.o_d_id);
++			ordrPrepStmt.setInt(4, oorder.o_c_id);
++			ordrPrepStmt.setInt(5, oorder.o_carrier_id);
++			ordrPrepStmt.setInt(6, oorder.o_ol_cnt);
++			ordrPrepStmt.setInt(7, oorder.o_all_local);
++			Timestamp entry_d = new java.sql.Timestamp(oorder.o_entry_d);
++			ordrPrepStmt.setTimestamp(8, entry_d);
++
++			ordrPrepStmt.execute();
++
++		} catch (SQLException se) {
++			System.out.println(se.getMessage());
++		} catch (Exception e) {
++			e.printStackTrace();
++		}
++
++	} // end insertOrder()
++
++	public void insertNewOrder(PreparedStatement nworPrepStmt,
++			NewOrder new_order) {
++
++		try {
++			nworPrepStmt.setInt(1, new_order.no_w_id);
++			nworPrepStmt.setInt(2, new_order.no_d_id);
++			nworPrepStmt.setInt(3, new_order.no_o_id);
++
++			nworPrepStmt.execute();
++
++		} catch (SQLException se) {
++			System.out.println(se.getMessage());
++		} catch (Exception e) {
++			e.printStackTrace();
++		}
++
++	} // end insertNewOrder()
++
++	public void insertOrderLine(PreparedStatement orlnPrepStmt,
++			OrderLine order_line) {
++
++		try {
++			orlnPrepStmt.setInt(1, order_line.ol_w_id);
++			orlnPrepStmt.setInt(2, order_line.ol_d_id);
++			orlnPrepStmt.setInt(3, order_line.ol_o_id);
++			orlnPrepStmt.setInt(4, order_line.ol_number);
++			orlnPrepStmt.setLong(5, order_line.ol_i_id);
++
++			Timestamp delivery_d = new Timestamp(order_line.ol_delivery_d);
++			orlnPrepStmt.setTimestamp(6, delivery_d);
++
++			orlnPrepStmt.setDouble(7, order_line.ol_amount);
++			orlnPrepStmt.setLong(8, order_line.ol_supply_w_id);
++			orlnPrepStmt.setDouble(9, order_line.ol_quantity);
++			orlnPrepStmt.setString(10, order_line.ol_dist_info);
++
++			orlnPrepStmt.execute();
++
++		} catch (SQLException se) {
++			System.out.println(se.getMessage());
++		} catch (Exception e) {
++			e.printStackTrace();
++		}
++
++	} // end insertOrderLine()
++
++} // end class jdbcIO()
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/jdbcIO.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/jdbcIO.java
+new file mode 100644
+index 0000000..65ddb8c
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/jdbc/jdbcIO.java
+@@ -0,0 +1,112 @@
++/*******************************************************************************
++ * oltpbenchmark.com
++ *  
++ *  Project Info:  http://oltpbenchmark.com
++ *  Project Members:  	Carlo Curino <carlo.curino@gmail.com>
++ * 				Evan Jones <ej@evanjones.ca>
++ * 				DIFALLAH Djellel Eddine <djelleleddine.difallah@unifr.ch>
++ * 				Andy Pavlo <pavlo@cs.brown.edu>
++ * 				CUDRE-MAUROUX Philippe <philippe.cudre-mauroux@unifr.ch>  
++ *  				Yang Zhang <yaaang@gmail.com> 
++ * 
++ *  This library is free software; you can redistribute it and/or modify it under the terms
++ *  of the GNU General Public License as published by the Free Software Foundation;
++ *  either version 3.0 of the License, or (at your option) any later version.
++ * 
++ *  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
++ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ *  See the GNU Lesser General Public License for more details.
++ ******************************************************************************/
++package com.oltpbenchmark.benchmarks.tpcc.jdbc;
++
++/*
++ * jdbcIO - execute JDBC statements
++ *
++ * Copyright (C) 2004-2006, Denis Lussier
++ *
++ */
++
++import java.sql.PreparedStatement;
++import java.sql.SQLException;
++import java.sql.Timestamp;
++import java.sql.Types;
++
++import com.oltpbenchmark.benchmarks.tpcc.pojo.NewOrder;
++import com.oltpbenchmark.benchmarks.tpcc.pojo.Oorder;
++import com.oltpbenchmark.benchmarks.tpcc.pojo.OrderLine;
++
++
++public class jdbcIO {
++
++	public void insertOrder(PreparedStatement ordrPrepStmt, Oorder oorder) {
++
++		try {
++
++			ordrPrepStmt.setInt(1, oorder.o_w_id);
++			ordrPrepStmt.setInt(2, oorder.o_d_id);
++			ordrPrepStmt.setInt(3, oorder.o_id);
++			ordrPrepStmt.setInt(4, oorder.o_c_id);
++			if (oorder.o_carrier_id != null) {
++				ordrPrepStmt.setInt(5, oorder.o_carrier_id);
++			} else {
++				ordrPrepStmt.setNull(5, Types.INTEGER);
++			}
++			ordrPrepStmt.setInt(6, oorder.o_ol_cnt);
++			ordrPrepStmt.setInt(7, oorder.o_all_local);
++			Timestamp entry_d = new java.sql.Timestamp(oorder.o_entry_d);
++			ordrPrepStmt.setTimestamp(8, entry_d);
++
++			ordrPrepStmt.addBatch();
++			//ordrPrepStmt.execute();
++			
++		} catch (SQLException se) {
++			throw new RuntimeException(se);
++		}
++
++	} // end insertOrder()
++
++	public void insertNewOrder(PreparedStatement nworPrepStmt,
++			NewOrder new_order) {
++
++		try {
++			nworPrepStmt.setInt(1, new_order.no_w_id);
++			nworPrepStmt.setInt(2, new_order.no_d_id);
++			nworPrepStmt.setInt(3, new_order.no_o_id);
++
++			nworPrepStmt.addBatch();
++
++		} catch (SQLException se) {
++			throw new RuntimeException(se);
++		}
++
++	} // end insertNewOrder()
++
++	public void insertOrderLine(PreparedStatement orlnPrepStmt,
++			OrderLine order_line) {
++
++		try {
++			orlnPrepStmt.setInt(1, order_line.ol_w_id);
++			orlnPrepStmt.setInt(2, order_line.ol_d_id);
++			orlnPrepStmt.setInt(3, order_line.ol_o_id);
++			orlnPrepStmt.setInt(4, order_line.ol_number);
++			orlnPrepStmt.setLong(5, order_line.ol_i_id);
++
++			Timestamp delivery_d = null;
++			if (order_line.ol_delivery_d != null)
++				delivery_d = new Timestamp(order_line.ol_delivery_d);
++			orlnPrepStmt.setTimestamp(6, delivery_d);
++
++			orlnPrepStmt.setDouble(7, order_line.ol_amount);
++			orlnPrepStmt.setLong(8, order_line.ol_supply_w_id);
++			orlnPrepStmt.setDouble(9, order_line.ol_quantity);
++			orlnPrepStmt.setString(10, order_line.ol_dist_info);
++
++			orlnPrepStmt.addBatch();
++
++		} catch (SQLException se) {
++			throw new RuntimeException(se);
++		}
++
++	} // end insertOrderLine()
++
++} // end class jdbcIO()
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Customer.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Customer.java
+new file mode 100644
+index 0000000..9228582
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Customer.java
+@@ -0,0 +1,94 @@
++/*******************************************************************************
++ * oltpbenchmark.com
++ *  
++ *  Project Info:  http://oltpbenchmark.com
++ *  Project Members:  	Carlo Curino <carlo.curino@gmail.com>
++ * 				Evan Jones <ej@evanjones.ca>
++ * 				DIFALLAH Djellel Eddine <djelleleddine.difallah@unifr.ch>
++ * 				Andy Pavlo <pavlo@cs.brown.edu>
++ * 				CUDRE-MAUROUX Philippe <philippe.cudre-mauroux@unifr.ch>  
++ *  				Yang Zhang <yaaang@gmail.com> 
++ * 
++ *  This library is free software; you can redistribute it and/or modify it under the terms
++ *  of the GNU General Public License as published by the Free Software Foundation;
++ *  either version 3.0 of the License, or (at your option) any later version.
++ * 
++ *  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
++ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ *  See the GNU Lesser General Public License for more details.
++ ******************************************************************************/
++package com.oltpbenchmark.benchmarks.tpcc.pojo;
++
++import java.sql.Timestamp;
++
++public class Customer {
++
++	public int c_id;
++	public int c_d_id;
++	public int c_w_id;
++	public int c_payment_cnt;
++	public int c_delivery_cnt;
++	public Timestamp c_since;
++	public float c_discount;
++	public float c_credit_lim;
++	public float c_balance;
++	public float c_ytd_payment;
++	public String c_credit;
++	public String c_last;
++	public String c_first;
++	public String c_street_1;
++	public String c_street_2;
++	public String c_city;
++	public String c_state;
++	public String c_zip;
++	public String c_phone;
++	public String c_middle;
++	public String c_data;
++
++	@Override
++	public String toString() {
++		return ("\n***************** Customer ********************"
++				+ "\n*           c_id = "
++				+ c_id
++				+ "\n*         c_d_id = "
++				+ c_d_id
++				+ "\n*         c_w_id = "
++				+ c_w_id
++				+ "\n*     c_discount = "
++				+ c_discount
++				+ "\n*       c_credit = "
++				+ c_credit
++				+ "\n*         c_last = "
++				+ c_last
++				+ "\n*        c_first = "
++				+ c_first
++				+ "\n*   c_credit_lim = "
++				+ c_credit_lim
++				+ "\n*      c_balance = "
++				+ c_balance
++				+ "\n*  c_ytd_payment = "
++				+ c_ytd_payment
++				+ "\n*  c_payment_cnt = "
++				+ c_payment_cnt
++				+ "\n* c_delivery_cnt = "
++				+ c_delivery_cnt
++				+ "\n*     c_street_1 = "
++				+ c_street_1
++				+ "\n*     c_street_2 = "
++				+ c_street_2
++				+ "\n*         c_city = "
++				+ c_city
++				+ "\n*        c_state = "
++				+ c_state
++				+ "\n*          c_zip = "
++				+ c_zip
++				+ "\n*        c_phone = "
++				+ c_phone
++				+ "\n*        c_since = "
++				+ c_since
++				+ "\n*       c_middle = "
++				+ c_middle
++				+ "\n*         c_data = " + c_data + "\n**********************************************");
++	}
++
++} // end Customer
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/District.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/District.java
+new file mode 100644
+index 0000000..85a61b3
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/District.java
+@@ -0,0 +1,62 @@
++/*******************************************************************************
++ * oltpbenchmark.com
++ *  
++ *  Project Info:  http://oltpbenchmark.com
++ *  Project Members:  	Carlo Curino <carlo.curino@gmail.com>
++ * 				Evan Jones <ej@evanjones.ca>
++ * 				DIFALLAH Djellel Eddine <djelleleddine.difallah@unifr.ch>
++ * 				Andy Pavlo <pavlo@cs.brown.edu>
++ * 				CUDRE-MAUROUX Philippe <philippe.cudre-mauroux@unifr.ch>  
++ *  				Yang Zhang <yaaang@gmail.com> 
++ * 
++ *  This library is free software; you can redistribute it and/or modify it under the terms
++ *  of the GNU General Public License as published by the Free Software Foundation;
++ *  either version 3.0 of the License, or (at your option) any later version.
++ * 
++ *  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
++ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ *  See the GNU Lesser General Public License for more details.
++ ******************************************************************************/
++package com.oltpbenchmark.benchmarks.tpcc.pojo;
++
++import java.io.Serializable;
++
++public class District implements Serializable {
++
++	public int d_id;
++	public int d_w_id;
++	public int d_next_o_id;
++	public float d_ytd;
++	public float d_tax;
++	public String d_name;
++	public String d_street_1;
++	public String d_street_2;
++	public String d_city;
++	public String d_state;
++	public String d_zip;
++
++	@Override
++	public String toString() {
++		return ("\n***************** District ********************"
++				+ "\n*        d_id = "
++				+ d_id
++				+ "\n*      d_w_id = "
++				+ d_w_id
++				+ "\n*       d_ytd = "
++				+ d_ytd
++				+ "\n*       d_tax = "
++				+ d_tax
++				+ "\n* d_next_o_id = "
++				+ d_next_o_id
++				+ "\n*      d_name = "
++				+ d_name
++				+ "\n*  d_street_1 = "
++				+ d_street_1
++				+ "\n*  d_street_2 = "
++				+ d_street_2
++				+ "\n*      d_city = "
++				+ d_city
++				+ "\n*     d_state = " + d_state + "\n*       d_zip = " + d_zip + "\n**********************************************");
++	}
++
++} // end District
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/History.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/History.java
+new file mode 100644
+index 0000000..9bcb461
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/History.java
+@@ -0,0 +1,44 @@
++/*******************************************************************************
++ * oltpbenchmark.com
++ *  
++ *  Project Info:  http://oltpbenchmark.com
++ *  Project Members:  	Carlo Curino <carlo.curino@gmail.com>
++ * 				Evan Jones <ej@evanjones.ca>
++ * 				DIFALLAH Djellel Eddine <djelleleddine.difallah@unifr.ch>
++ * 				Andy Pavlo <pavlo@cs.brown.edu>
++ * 				CUDRE-MAUROUX Philippe <philippe.cudre-mauroux@unifr.ch>  
++ *  				Yang Zhang <yaaang@gmail.com> 
++ * 
++ *  This library is free software; you can redistribute it and/or modify it under the terms
++ *  of the GNU General Public License as published by the Free Software Foundation;
++ *  either version 3.0 of the License, or (at your option) any later version.
++ * 
++ *  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
++ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ *  See the GNU Lesser General Public License for more details.
++ ******************************************************************************/
++package com.oltpbenchmark.benchmarks.tpcc.pojo;
++
++import java.sql.Timestamp;
++
++public class History {
++
++	public int h_c_id;
++	public int h_c_d_id;
++	public int h_c_w_id;
++	public int h_d_id;
++	public int h_w_id;
++	public Timestamp h_date;
++	public float h_amount;
++	public String h_data;
++
++	@Override
++	public String toString() {
++		return ("\n***************** History ********************"
++				+ "\n*   h_c_id = " + h_c_id + "\n* h_c_d_id = " + h_c_d_id
++				+ "\n* h_c_w_id = " + h_c_w_id + "\n*   h_d_id = " + h_d_id
++				+ "\n*   h_w_id = " + h_w_id + "\n*   h_date = " + h_date
++				+ "\n* h_amount = " + h_amount + "\n*   h_data = " + h_data + "\n**********************************************");
++	}
++
++} // end History
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Item.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Item.java
+new file mode 100644
+index 0000000..f56adf2
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Item.java
+@@ -0,0 +1,38 @@
++/*******************************************************************************
++ * oltpbenchmark.com
++ *  
++ *  Project Info:  http://oltpbenchmark.com
++ *  Project Members:  	Carlo Curino <carlo.curino@gmail.com>
++ * 				Evan Jones <ej@evanjones.ca>
++ * 				DIFALLAH Djellel Eddine <djelleleddine.difallah@unifr.ch>
++ * 				Andy Pavlo <pavlo@cs.brown.edu>
++ * 				CUDRE-MAUROUX Philippe <philippe.cudre-mauroux@unifr.ch>  
++ *  				Yang Zhang <yaaang@gmail.com> 
++ * 
++ *  This library is free software; you can redistribute it and/or modify it under the terms
++ *  of the GNU General Public License as published by the Free Software Foundation;
++ *  either version 3.0 of the License, or (at your option) any later version.
++ * 
++ *  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
++ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ *  See the GNU Lesser General Public License for more details.
++ ******************************************************************************/
++package com.oltpbenchmark.benchmarks.tpcc.pojo;
++
++public class Item {
++
++	public int i_id; // PRIMARY KEY
++	public int i_im_id;
++	public float i_price;
++	public String i_name;
++	public String i_data;
++
++	@Override
++	public String toString() {
++		return ("\n***************** Item ********************"
++				+ "\n*    i_id = " + i_id + "\n*  i_name = " + i_name
++				+ "\n* i_price = " + i_price + "\n*  i_data = " + i_data
++				+ "\n* i_im_id = " + i_im_id + "\n**********************************************");
++	}
++
++} // end Item
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/NewOrder.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/NewOrder.java
+new file mode 100644
+index 0000000..b67f910
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/NewOrder.java
+@@ -0,0 +1,37 @@
++/*******************************************************************************
++ * oltpbenchmark.com
++ *  
++ *  Project Info:  http://oltpbenchmark.com
++ *  Project Members:  	Carlo Curino <carlo.curino@gmail.com>
++ * 				Evan Jones <ej@evanjones.ca>
++ * 				DIFALLAH Djellel Eddine <djelleleddine.difallah@unifr.ch>
++ * 				Andy Pavlo <pavlo@cs.brown.edu>
++ * 				CUDRE-MAUROUX Philippe <philippe.cudre-mauroux@unifr.ch>  
++ *  				Yang Zhang <yaaang@gmail.com> 
++ * 
++ *  This library is free software; you can redistribute it and/or modify it under the terms
++ *  of the GNU General Public License as published by the Free Software Foundation;
++ *  either version 3.0 of the License, or (at your option) any later version.
++ * 
++ *  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
++ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ *  See the GNU Lesser General Public License for more details.
++ ******************************************************************************/
++package com.oltpbenchmark.benchmarks.tpcc.pojo;
++
++import java.io.Serializable;
++
++public class NewOrder implements Serializable {
++
++	public int no_w_id;
++	public int no_d_id;
++	public int no_o_id;
++
++	@Override
++	public String toString() {
++		return ("\n***************** NewOrder ********************"
++				+ "\n*      no_w_id = " + no_w_id + "\n*      no_d_id = "
++				+ no_d_id + "\n*      no_o_id = " + no_o_id + "\n**********************************************");
++	}
++
++} // end NewOrder
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Oorder.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Oorder.java
+new file mode 100644
+index 0000000..12b1905
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Oorder.java
+@@ -0,0 +1,45 @@
++/*******************************************************************************
++ * oltpbenchmark.com
++ *  
++ *  Project Info:  http://oltpbenchmark.com
++ *  Project Members:  	Carlo Curino <carlo.curino@gmail.com>
++ * 				Evan Jones <ej@evanjones.ca>
++ * 				DIFALLAH Djellel Eddine <djelleleddine.difallah@unifr.ch>
++ * 				Andy Pavlo <pavlo@cs.brown.edu>
++ * 				CUDRE-MAUROUX Philippe <philippe.cudre-mauroux@unifr.ch>  
++ *  				Yang Zhang <yaaang@gmail.com> 
++ * 
++ *  This library is free software; you can redistribute it and/or modify it under the terms
++ *  of the GNU General Public License as published by the Free Software Foundation;
++ *  either version 3.0 of the License, or (at your option) any later version.
++ * 
++ *  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
++ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ *  See the GNU Lesser General Public License for more details.
++ ******************************************************************************/
++package com.oltpbenchmark.benchmarks.tpcc.pojo;
++
++public class Oorder {
++
++	public int o_id;
++	public int o_w_id;
++	public int o_d_id;
++	public int o_c_id;
++	public Integer o_carrier_id;
++	public int o_ol_cnt;
++	public int o_all_local;
++	public long o_entry_d;
++
++	@Override
++	public String toString() {
++		java.sql.Timestamp entry_d = new java.sql.Timestamp(o_entry_d);
++
++		return ("\n***************** Oorder ********************"
++				+ "\n*         o_id = " + o_id + "\n*       o_w_id = " + o_w_id
++				+ "\n*       o_d_id = " + o_d_id + "\n*       o_c_id = "
++				+ o_c_id + "\n* o_carrier_id = " + o_carrier_id
++				+ "\n*     o_ol_cnt = " + o_ol_cnt + "\n*  o_all_local = "
++				+ o_all_local + "\n*    o_entry_d = " + entry_d + "\n**********************************************");
++	}
++
++} // end Oorder
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/OrderLine.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/OrderLine.java
+new file mode 100644
+index 0000000..335ed7a
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/OrderLine.java
+@@ -0,0 +1,47 @@
++/*******************************************************************************
++ * oltpbenchmark.com
++ *  
++ *  Project Info:  http://oltpbenchmark.com
++ *  Project Members:  	Carlo Curino <carlo.curino@gmail.com>
++ * 				Evan Jones <ej@evanjones.ca>
++ * 				DIFALLAH Djellel Eddine <djelleleddine.difallah@unifr.ch>
++ * 				Andy Pavlo <pavlo@cs.brown.edu>
++ * 				CUDRE-MAUROUX Philippe <philippe.cudre-mauroux@unifr.ch>  
++ *  				Yang Zhang <yaaang@gmail.com> 
++ * 
++ *  This library is free software; you can redistribute it and/or modify it under the terms
++ *  of the GNU General Public License as published by the Free Software Foundation;
++ *  either version 3.0 of the License, or (at your option) any later version.
++ * 
++ *  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
++ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ *  See the GNU Lesser General Public License for more details.
++ ******************************************************************************/
++package com.oltpbenchmark.benchmarks.tpcc.pojo;
++
++public class OrderLine {
++
++	public int ol_w_id;
++	public int ol_d_id;
++	public int ol_o_id;
++	public int ol_number;
++	public int ol_i_id;
++	public int ol_supply_w_id;
++	public int ol_quantity;
++	public Long ol_delivery_d;
++	public float ol_amount;
++	public String ol_dist_info;
++
++	@Override
++	public String toString() {
++		return ("\n***************** OrderLine ********************"
++				+ "\n*        ol_w_id = " + ol_w_id + "\n*        ol_d_id = "
++				+ ol_d_id + "\n*        ol_o_id = " + ol_o_id
++				+ "\n*      ol_number = " + ol_number + "\n*        ol_i_id = "
++				+ ol_i_id + "\n*  ol_delivery_d = " + ol_delivery_d
++				+ "\n*      ol_amount = " + ol_amount + "\n* ol_supply_w_id = "
++				+ ol_supply_w_id + "\n*    ol_quantity = " + ol_quantity
++				+ "\n*   ol_dist_info = " + ol_dist_info + "\n**********************************************");
++	}
++
++} // end OrderLine
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Stock.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Stock.java
+new file mode 100644
+index 0000000..ff64f89
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Stock.java
+@@ -0,0 +1,83 @@
++/*******************************************************************************
++ * oltpbenchmark.com
++ *  
++ *  Project Info:  http://oltpbenchmark.com
++ *  Project Members:  	Carlo Curino <carlo.curino@gmail.com>
++ * 				Evan Jones <ej@evanjones.ca>
++ * 				DIFALLAH Djellel Eddine <djelleleddine.difallah@unifr.ch>
++ * 				Andy Pavlo <pavlo@cs.brown.edu>
++ * 				CUDRE-MAUROUX Philippe <philippe.cudre-mauroux@unifr.ch>  
++ *  				Yang Zhang <yaaang@gmail.com> 
++ * 
++ *  This library is free software; you can redistribute it and/or modify it under the terms
++ *  of the GNU General Public License as published by the Free Software Foundation;
++ *  either version 3.0 of the License, or (at your option) any later version.
++ * 
++ *  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
++ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ *  See the GNU Lesser General Public License for more details.
++ ******************************************************************************/
++package com.oltpbenchmark.benchmarks.tpcc.pojo;
++
++import java.io.Serializable;
++
++public class Stock implements Serializable {
++
++	public int s_i_id; // PRIMARY KEY 2
++	public int s_w_id; // PRIMARY KEY 1
++	public int s_order_cnt;
++	public int s_remote_cnt;
++	public int s_quantity;
++	public float s_ytd;
++	public String s_data;
++	public String s_dist_01;
++	public String s_dist_02;
++	public String s_dist_03;
++	public String s_dist_04;
++	public String s_dist_05;
++	public String s_dist_06;
++	public String s_dist_07;
++	public String s_dist_08;
++	public String s_dist_09;
++	public String s_dist_10;
++
++	@Override
++	public String toString() {
++		return (
++
++		"\n***************** Stock ********************"
++				+ "\n*       s_i_id = "
++				+ s_i_id
++				+ "\n*       s_w_id = "
++				+ s_w_id
++				+ "\n*   s_quantity = "
++				+ s_quantity
++				+ "\n*        s_ytd = "
++				+ s_ytd
++				+ "\n*  s_order_cnt = "
++				+ s_order_cnt
++				+ "\n* s_remote_cnt = "
++				+ s_remote_cnt
++				+ "\n*       s_data = "
++				+ s_data
++				+ "\n*    s_dist_01 = "
++				+ s_dist_01
++				+ "\n*    s_dist_02 = "
++				+ s_dist_02
++				+ "\n*    s_dist_03 = "
++				+ s_dist_03
++				+ "\n*    s_dist_04 = "
++				+ s_dist_04
++				+ "\n*    s_dist_05 = "
++				+ s_dist_05
++				+ "\n*    s_dist_06 = "
++				+ s_dist_06
++				+ "\n*    s_dist_07 = "
++				+ s_dist_07
++				+ "\n*    s_dist_08 = "
++				+ s_dist_08
++				+ "\n*    s_dist_09 = "
++				+ s_dist_09 + "\n*    s_dist_10 = " + s_dist_10 + "\n**********************************************");
++	}
++
++} // end Stock
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Warehouse.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Warehouse.java
+new file mode 100644
+index 0000000..aa93bbc
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/pojo/Warehouse.java
+@@ -0,0 +1,46 @@
++/*******************************************************************************
++ * oltpbenchmark.com
++ *  
++ *  Project Info:  http://oltpbenchmark.com
++ *  Project Members:  	Carlo Curino <carlo.curino@gmail.com>
++ * 				Evan Jones <ej@evanjones.ca>
++ * 				DIFALLAH Djellel Eddine <djelleleddine.difallah@unifr.ch>
++ * 				Andy Pavlo <pavlo@cs.brown.edu>
++ * 				CUDRE-MAUROUX Philippe <philippe.cudre-mauroux@unifr.ch>  
++ *  				Yang Zhang <yaaang@gmail.com> 
++ * 
++ *  This library is free software; you can redistribute it and/or modify it under the terms
++ *  of the GNU General Public License as published by the Free Software Foundation;
++ *  either version 3.0 of the License, or (at your option) any later version.
++ * 
++ *  This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
++ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ *  See the GNU Lesser General Public License for more details.
++ ******************************************************************************/
++package com.oltpbenchmark.benchmarks.tpcc.pojo;
++
++import java.io.Serializable;
++
++public class Warehouse implements Serializable {
++
++	public int w_id; // PRIMARY KEY
++	public float w_ytd;
++	public float w_tax;
++	public String w_name;
++	public String w_street_1;
++	public String w_street_2;
++	public String w_city;
++	public String w_state;
++	public String w_zip;
++
++	@Override
++	public String toString() {
++		return ("\n***************** Warehouse ********************"
++				+ "\n*       w_id = " + w_id + "\n*      w_ytd = " + w_ytd
++				+ "\n*      w_tax = " + w_tax + "\n*     w_name = " + w_name
++				+ "\n* w_street_1 = " + w_street_1 + "\n* w_street_2 = "
++				+ w_street_2 + "\n*     w_city = " + w_city
++				+ "\n*    w_state = " + w_state + "\n*      w_zip = " + w_zip + "\n**********************************************");
++	}
++
++} // end Warehouse
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Delivery.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Delivery.java
+new file mode 100644
+index 0000000..5396e14
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Delivery.java
+@@ -0,0 +1,219 @@
++package com.oltpbenchmark.benchmarks.tpcc.procedures;
++
++import java.sql.Connection;
++import java.sql.PreparedStatement;
++import java.sql.ResultSet;
++import java.sql.SQLException;
++import java.sql.Timestamp;
++import java.util.Random;
++
++import com.oltpbenchmark.api.SQLStmt;
++import com.oltpbenchmark.benchmarks.tpcc.TPCCConstants;
++import com.oltpbenchmark.benchmarks.tpcc.TPCCUtil;
++import com.oltpbenchmark.benchmarks.tpcc.TPCCWorker;
++
++public class Delivery extends TPCCProcedure {
++
++
++	public SQLStmt delivGetOrderIdSQL = new SQLStmt("SELECT NO_O_ID FROM " + TPCCConstants.TABLENAME_NEWORDER + " WHERE NO_D_ID = ?"
++			+ " AND NO_W_ID = ? ORDER BY NO_O_ID ASC LIMIT 1");
++	public SQLStmt delivDeleteNewOrderSQL = new SQLStmt("DELETE FROM " + TPCCConstants.TABLENAME_NEWORDER + ""
++			+ " WHERE NO_O_ID = ? AND NO_D_ID = ?"
++			+ " AND NO_W_ID = ?");
++	public SQLStmt delivGetCustIdSQL = new SQLStmt("SELECT O_C_ID"
++			+ " FROM " + TPCCConstants.TABLENAME_OPENORDER + " WHERE O_ID = ?"
++			+ " AND O_D_ID = ?" + " AND O_W_ID = ?");
++	public SQLStmt delivUpdateCarrierIdSQL = new SQLStmt("UPDATE " + TPCCConstants.TABLENAME_OPENORDER + " SET O_CARRIER_ID = ?"
++			+ " WHERE O_ID = ?" + " AND O_D_ID = ?"
++			+ " AND O_W_ID = ?");
++	public SQLStmt delivUpdateDeliveryDateSQL = new SQLStmt("UPDATE " + TPCCConstants.TABLENAME_ORDERLINE + " SET OL_DELIVERY_D = ?"
++			+ " WHERE OL_O_ID = ?"
++			+ " AND OL_D_ID = ?"
++			+ " AND OL_W_ID = ?");
++	public SQLStmt delivSumOrderAmountSQL = new SQLStmt("SELECT SUM(OL_AMOUNT) AS OL_TOTAL"
++			+ " FROM " + TPCCConstants.TABLENAME_ORDERLINE + "" + " WHERE OL_O_ID = ?"
++			+ " AND OL_D_ID = ?" + " AND OL_W_ID = ?");
++	public SQLStmt delivUpdateCustBalDelivCntSQL = new SQLStmt("UPDATE " + TPCCConstants.TABLENAME_CUSTOMER + " SET C_BALANCE = C_BALANCE + ?"
++			+ ", C_DELIVERY_CNT = C_DELIVERY_CNT + 1"
++			+ " WHERE C_W_ID = ?"
++			+ " AND C_D_ID = ?"
++			+ " AND C_ID = ?");
++
++
++	// Delivery Txn
++	private PreparedStatement delivGetOrderId = null;
++	private PreparedStatement delivDeleteNewOrder = null;
++	private PreparedStatement delivGetCustId = null;
++	private PreparedStatement delivUpdateCarrierId = null;
++	private PreparedStatement delivUpdateDeliveryDate = null;
++	private PreparedStatement delivSumOrderAmount = null;
++	private PreparedStatement delivUpdateCustBalDelivCnt = null;
++
++
++    public ResultSet run(Connection conn, Random gen,
++			int terminalWarehouseID, int numWarehouses,
++			int terminalDistrictLowerID, int terminalDistrictUpperID,
++			TPCCWorker w) throws SQLException {
++		int orderCarrierID = TPCCUtil.randomNumber(1, 10, gen);
++
++
++		delivGetOrderId = this.getPreparedStatement(conn, delivGetOrderIdSQL);
++		delivDeleteNewOrder =  this.getPreparedStatement(conn, delivDeleteNewOrderSQL);
++		delivGetCustId = this.getPreparedStatement(conn, delivGetCustIdSQL);
++		delivUpdateCarrierId = this.getPreparedStatement(conn, delivUpdateCarrierIdSQL);
++		delivUpdateDeliveryDate = this.getPreparedStatement(conn, delivUpdateDeliveryDateSQL);
++		delivSumOrderAmount = this.getPreparedStatement(conn, delivSumOrderAmountSQL);
++		delivUpdateCustBalDelivCnt = this.getPreparedStatement(conn, delivUpdateCustBalDelivCntSQL);
++
++		deliveryTransaction(terminalWarehouseID,orderCarrierID, conn, w);
++		return null;
++    }
++
++
++	private int deliveryTransaction(int w_id, int o_carrier_id, Connection conn, TPCCWorker w) throws SQLException {
++
++	    int d_id, c_id;
++		float ol_total;
++		int[] orderIDs;
++
++		orderIDs = new int[10];
++		for (d_id = 1; d_id <= 10; d_id++) {
++
++
++			delivGetOrderId.setInt(1, d_id);
++			delivGetOrderId.setInt(2, w_id);
++			ResultSet rs = delivGetOrderId.executeQuery();
++			if (!rs.next()) {
++				// This district has no new orders; this can happen but should
++				// be rare
++				continue;
++			}
++
++			int no_o_id = rs.getInt("NO_O_ID");
++			orderIDs[d_id - 1] = no_o_id;
++			rs.close();
++			rs = null;
++
++			delivDeleteNewOrder.setInt(1, no_o_id);
++			delivDeleteNewOrder.setInt(2, d_id);
++			delivDeleteNewOrder.setInt(3, w_id);
++			int result = delivDeleteNewOrder.executeUpdate();
++			if (result != 1) {
++				// This code used to run in a loop in an attempt to make this
++				// work
++				// with MySQL's default weird consistency level. We just always
++				// run
++				// this as SERIALIZABLE instead. I don't *think* that fixing
++				// this one
++				// error makes this work with MySQL's default consistency.
++				// Careful
++				// auditing would be required.
++				throw new UserAbortException(
++						"New order w_id="
++								+ w_id
++								+ " d_id="
++								+ d_id
++								+ " no_o_id="
++								+ no_o_id
++								+ " delete failed (not running with SERIALIZABLE isolation?)");
++			}
++
++
++			delivGetCustId.setInt(1, no_o_id);
++			delivGetCustId.setInt(2, d_id);
++			delivGetCustId.setInt(3, w_id);
++			rs = delivGetCustId.executeQuery();
++
++			if (!rs.next())
++				throw new RuntimeException("O_ID=" + no_o_id + " O_D_ID="
++						+ d_id + " O_W_ID=" + w_id + " not found!");
++			c_id = rs.getInt("O_C_ID");
++			rs.close();
++			rs = null;
++
++
++			delivUpdateCarrierId.setInt(1, o_carrier_id);
++			delivUpdateCarrierId.setInt(2, no_o_id);
++			delivUpdateCarrierId.setInt(3, d_id);
++			delivUpdateCarrierId.setInt(4, w_id);
++			result = delivUpdateCarrierId.executeUpdate();
++
++			if (result != 1)
++				throw new RuntimeException("O_ID=" + no_o_id + " O_D_ID="
++						+ d_id + " O_W_ID=" + w_id + " not found!");
++
++
++			delivUpdateDeliveryDate.setTimestamp(1,
++					new Timestamp(System.currentTimeMillis()));
++			delivUpdateDeliveryDate.setInt(2, no_o_id);
++			delivUpdateDeliveryDate.setInt(3, d_id);
++			delivUpdateDeliveryDate.setInt(4, w_id);
++			result = delivUpdateDeliveryDate.executeUpdate();
++
++			if (result == 0)
++				throw new RuntimeException("OL_O_ID=" + no_o_id + " OL_D_ID="
++						+ d_id + " OL_W_ID=" + w_id + " not found!");
++
++
++
++			delivSumOrderAmount.setInt(1, no_o_id);
++			delivSumOrderAmount.setInt(2, d_id);
++			delivSumOrderAmount.setInt(3, w_id);
++			rs = delivSumOrderAmount.executeQuery();
++
++			if (!rs.next())
++				throw new RuntimeException("OL_O_ID=" + no_o_id + " OL_D_ID="
++						+ d_id + " OL_W_ID=" + w_id + " not found!");
++			ol_total = rs.getFloat("OL_TOTAL");
++			rs.close();
++			rs = null;
++
++			delivUpdateCustBalDelivCnt.setFloat(1, ol_total);
++			delivUpdateCustBalDelivCnt.setInt(2, w_id);
++			delivUpdateCustBalDelivCnt.setInt(3, d_id);
++			delivUpdateCustBalDelivCnt.setInt(4, c_id);
++			result = delivUpdateCustBalDelivCnt.executeUpdate();
++
++			if (result == 0)
++				throw new RuntimeException("C_ID=" + c_id + " C_W_ID=" + w_id
++						+ " C_D_ID=" + d_id + " not found!");
++		}
++
++		conn.commit();
++
++		//TODO: This part is not used
++		StringBuilder terminalMessage = new StringBuilder();
++		terminalMessage
++				.append("\n+---------------------------- DELIVERY ---------------------------+\n");
++		terminalMessage.append(" Date: ");
++		terminalMessage.append(TPCCUtil.getCurrentTime());
++		terminalMessage.append("\n\n Warehouse: ");
++		terminalMessage.append(w_id);
++		terminalMessage.append("\n Carrier:   ");
++		terminalMessage.append(o_carrier_id);
++		terminalMessage.append("\n\n Delivered Orders\n");
++		int skippedDeliveries = 0;
++		for (int i = 1; i <= 10; i++) {
++			if (orderIDs[i - 1] >= 0) {
++				terminalMessage.append("  District ");
++				terminalMessage.append(i < 10 ? " " : "");
++				terminalMessage.append(i);
++				terminalMessage.append(": Order number ");
++				terminalMessage.append(orderIDs[i - 1]);
++				terminalMessage.append(" was delivered.\n");
++			} else {
++				terminalMessage.append("  District ");
++				terminalMessage.append(i < 10 ? " " : "");
++				terminalMessage.append(i);
++				terminalMessage.append(": No orders to be delivered.\n");
++				skippedDeliveries++;
++			}
++		}
++		terminalMessage.append("+-----------------------------------------------------------------+\n\n");
++
++		return skippedDeliveries;
++	}
++
++
++
++}
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/NewOrder.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/NewOrder.java
+new file mode 100644
+index 0000000..96d0978
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/NewOrder.java
+@@ -0,0 +1,340 @@
++package com.oltpbenchmark.benchmarks.tpcc.procedures;
++
++import java.sql.Connection;
++import java.sql.PreparedStatement;
++import java.sql.ResultSet;
++import java.sql.SQLException;
++import java.sql.Timestamp;
++import java.util.Random;
++
++import org.apache.log4j.Logger;
++
++import com.oltpbenchmark.api.SQLStmt;
++import com.oltpbenchmark.benchmarks.tpcc.TPCCConstants;
++import com.oltpbenchmark.benchmarks.tpcc.TPCCUtil;
++import com.oltpbenchmark.benchmarks.tpcc.TPCCWorker;
++import com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig;
++
++public class NewOrder extends TPCCProcedure {
++
++    private static final Logger LOG = Logger.getLogger(NewOrder.class);
++
++    public final SQLStmt stmtGetCustWhseSQL = new SQLStmt(
++    		"SELECT C_DISCOUNT, C_LAST, C_CREDIT, W_TAX"
++			+ "  FROM " + TPCCConstants.TABLENAME_CUSTOMER + ", " + TPCCConstants.TABLENAME_WAREHOUSE
++			+ " WHERE W_ID = ? AND C_W_ID = ?"
++			+ " AND C_D_ID = ? AND C_ID = ?");
++
++    public final SQLStmt stmtGetDistSQL = new SQLStmt(
++    		"SELECT D_NEXT_O_ID, D_TAX FROM " + TPCCConstants.TABLENAME_DISTRICT
++					+ " WHERE D_W_ID = ? AND D_ID = ? FOR UPDATE"
++    				);
++
++	public final SQLStmt  stmtInsertNewOrderSQL = new SQLStmt("INSERT INTO "+ TPCCConstants.TABLENAME_NEWORDER + " (NO_O_ID, NO_D_ID, NO_W_ID) VALUES ( ?, ?, ?)");
++
++	public final SQLStmt  stmtUpdateDistSQL = new SQLStmt("UPDATE " + TPCCConstants.TABLENAME_DISTRICT + " SET D_NEXT_O_ID = D_NEXT_O_ID + 1 WHERE D_W_ID = ? AND D_ID = ?");
++
++	public final SQLStmt  stmtInsertOOrderSQL = new SQLStmt("INSERT INTO " + TPCCConstants.TABLENAME_OPENORDER
++			+ " (O_ID, O_D_ID, O_W_ID, O_C_ID, O_ENTRY_D, O_OL_CNT, O_ALL_LOCAL)"
++			+ " VALUES (?, ?, ?, ?, ?, ?, ?)");
++
++	public final SQLStmt  stmtGetItemSQL = new SQLStmt("SELECT I_PRICE, I_NAME , I_DATA FROM " + TPCCConstants.TABLENAME_ITEM + " WHERE I_ID = ?");
++
++	public final SQLStmt  stmtGetStockSQL = new SQLStmt("SELECT S_QUANTITY, S_DATA, S_DIST_01, S_DIST_02, S_DIST_03, S_DIST_04, S_DIST_05, "
++			+ "       S_DIST_06, S_DIST_07, S_DIST_08, S_DIST_09, S_DIST_10"
++			+ " FROM " + TPCCConstants.TABLENAME_STOCK + " WHERE S_I_ID = ? AND S_W_ID = ? FOR UPDATE");
++
++	public final SQLStmt  stmtUpdateStockSQL = new SQLStmt("UPDATE " + TPCCConstants.TABLENAME_STOCK + " SET S_QUANTITY = ? , S_YTD = S_YTD + ?, S_ORDER_CNT = S_ORDER_CNT + 1, S_REMOTE_CNT = S_REMOTE_CNT + ? "
++			+ " WHERE S_I_ID = ? AND S_W_ID = ?");
++
++	public final SQLStmt  stmtInsertOrderLineSQL = new SQLStmt("INSERT INTO " + TPCCConstants.TABLENAME_ORDERLINE + " (OL_O_ID, OL_D_ID, OL_W_ID, OL_NUMBER, OL_I_ID, OL_SUPPLY_W_ID,"
++			+ "  OL_QUANTITY, OL_AMOUNT, OL_DIST_INFO) VALUES (?,?,?,?,?,?,?,?,?)");
++
++
++	// NewOrder Txn
++	private PreparedStatement stmtGetCustWhse = null;
++	private PreparedStatement stmtGetDist = null;
++	private PreparedStatement stmtInsertNewOrder = null;
++	private PreparedStatement stmtUpdateDist = null;
++	private PreparedStatement stmtInsertOOrder = null;
++	private PreparedStatement stmtGetItem = null;
++	private PreparedStatement stmtGetStock = null;
++	private PreparedStatement stmtUpdateStock = null;
++	private PreparedStatement stmtInsertOrderLine = null;
++
++
++    public ResultSet run(Connection conn, Random gen,
++			int terminalWarehouseID, int numWarehouses,
++			int terminalDistrictLowerID, int terminalDistrictUpperID,
++			TPCCWorker w) throws SQLException {
++
++
++
++		//initializing all prepared statements
++		stmtGetCustWhse=this.getPreparedStatement(conn, stmtGetCustWhseSQL);
++		stmtGetDist=this.getPreparedStatement(conn, stmtGetDistSQL);
++		stmtInsertNewOrder=this.getPreparedStatement(conn, stmtInsertNewOrderSQL);
++		stmtUpdateDist =this.getPreparedStatement(conn, stmtUpdateDistSQL);
++		stmtInsertOOrder =this.getPreparedStatement(conn, stmtInsertOOrderSQL);
++		stmtGetItem =this.getPreparedStatement(conn, stmtGetItemSQL);
++		stmtGetStock =this.getPreparedStatement(conn, stmtGetStockSQL);
++		stmtUpdateStock =this.getPreparedStatement(conn, stmtUpdateStockSQL);
++		stmtInsertOrderLine =this.getPreparedStatement(conn, stmtInsertOrderLineSQL);
++
++
++		int districtID = TPCCUtil.randomNumber(terminalDistrictLowerID,terminalDistrictUpperID, gen);
++		int customerID = TPCCUtil.getCustomerID(gen);
++
++		int numItems = (int) TPCCUtil.randomNumber(5, 15, gen);
++		int[] itemIDs = new int[numItems];
++		int[] supplierWarehouseIDs = new int[numItems];
++		int[] orderQuantities = new int[numItems];
++		int allLocal = 1;
++		for (int i = 0; i < numItems; i++) {
++			itemIDs[i] = TPCCUtil.getItemID(gen);
++			if (TPCCUtil.randomNumber(1, 100, gen) > 1) {
++				supplierWarehouseIDs[i] = terminalWarehouseID;
++			} else {
++				do {
++					supplierWarehouseIDs[i] = TPCCUtil.randomNumber(1,
++							numWarehouses, gen);
++				} while (supplierWarehouseIDs[i] == terminalWarehouseID
++						&& numWarehouses > 1);
++				allLocal = 0;
++			}
++			orderQuantities[i] = TPCCUtil.randomNumber(1, 10, gen);
++		}
++
++		// we need to cause 1% of the new orders to be rolled back.
++		if (TPCCUtil.randomNumber(1, 100, gen) == 1)
++			itemIDs[numItems - 1] = jTPCCConfig.INVALID_ITEM_ID;
++
++
++		newOrderTransaction(terminalWarehouseID, districtID,
++						customerID, numItems, allLocal, itemIDs,
++						supplierWarehouseIDs, orderQuantities, conn, w);
++		return null;
++
++    }
++
++
++
++
++	private void newOrderTransaction(int w_id, int d_id, int c_id,
++			int o_ol_cnt, int o_all_local, int[] itemIDs,
++			int[] supplierWarehouseIDs, int[] orderQuantities, Connection conn, TPCCWorker w)
++			throws SQLException {
++		float c_discount, w_tax, d_tax = 0, i_price;
++		int d_next_o_id, o_id = -1, s_quantity;
++		String c_last = null, c_credit = null, i_name, i_data, s_data;
++		String s_dist_01, s_dist_02, s_dist_03, s_dist_04, s_dist_05;
++		String s_dist_06, s_dist_07, s_dist_08, s_dist_09, s_dist_10, ol_dist_info = null;
++		float[] itemPrices = new float[o_ol_cnt];
++		float[] orderLineAmounts = new float[o_ol_cnt];
++		String[] itemNames = new String[o_ol_cnt];
++		int[] stockQuantities = new int[o_ol_cnt];
++		char[] brandGeneric = new char[o_ol_cnt];
++		int ol_supply_w_id, ol_i_id, ol_quantity;
++		int s_remote_cnt_increment;
++		float ol_amount, total_amount = 0;
++		try
++		{
++			stmtGetCustWhse.setInt(1, w_id);
++			stmtGetCustWhse.setInt(2, w_id);
++			stmtGetCustWhse.setInt(3, d_id);
++			stmtGetCustWhse.setInt(4, c_id);
++			ResultSet rs = stmtGetCustWhse.executeQuery();
++			if (!rs.next())
++				throw new RuntimeException("W_ID=" + w_id + " C_D_ID=" + d_id
++						+ " C_ID=" + c_id + " not found!");
++			c_discount = rs.getFloat("C_DISCOUNT");
++			c_last = rs.getString("C_LAST");
++			c_credit = rs.getString("C_CREDIT");
++			w_tax = rs.getFloat("W_TAX");
++			rs.close();
++			rs = null;
++
++
++			stmtGetDist.setInt(1, w_id);
++			stmtGetDist.setInt(2, d_id);
++			rs = stmtGetDist.executeQuery();
++			if (!rs.next()) {
++				throw new RuntimeException("D_ID=" + d_id + " D_W_ID=" + w_id
++						+ " not found!");
++			}
++			d_next_o_id = rs.getInt("D_NEXT_O_ID");
++			d_tax = rs.getFloat("D_TAX");
++			rs.close();
++			rs = null;
++			o_id = d_next_o_id;
++
++
++			stmtInsertNewOrder.setInt(1, o_id);
++			stmtInsertNewOrder.setInt(2, d_id);
++			stmtInsertNewOrder.setInt(3, w_id);
++			stmtInsertNewOrder.executeUpdate();
++
++			stmtUpdateDist.setInt(1, w_id);
++			stmtUpdateDist.setInt(2, d_id);
++			int result = stmtUpdateDist.executeUpdate();
++			if (result == 0)
++				throw new RuntimeException(
++						"Error!! Cannot update next_order_id on district for D_ID="
++								+ d_id + " D_W_ID=" + w_id);
++
++			stmtInsertOOrder.setInt(1, o_id);
++			stmtInsertOOrder.setInt(2, d_id);
++			stmtInsertOOrder.setInt(3, w_id);
++			stmtInsertOOrder.setInt(4, c_id);
++			stmtInsertOOrder.setTimestamp(5,
++					new Timestamp(System.currentTimeMillis()));
++			stmtInsertOOrder.setInt(6, o_ol_cnt);
++			stmtInsertOOrder.setInt(7, o_all_local);
++			stmtInsertOOrder.executeUpdate();
++
++			for (int ol_number = 1; ol_number <= o_ol_cnt; ol_number++) {
++				ol_supply_w_id = supplierWarehouseIDs[ol_number - 1];
++				ol_i_id = itemIDs[ol_number - 1];
++				ol_quantity = orderQuantities[ol_number - 1];
++				stmtGetItem.setInt(1, ol_i_id);
++				rs = stmtGetItem.executeQuery();
++				if (!rs.next()) {
++					// This is (hopefully) an expected error: this is an
++					// expected new order rollback
++					assert ol_number == o_ol_cnt;
++					assert ol_i_id == jTPCCConfig.INVALID_ITEM_ID;
++					rs.close();
++					throw new UserAbortException(
++							"EXPECTED new order rollback: I_ID=" + ol_i_id
++									+ " not found!");
++				}
++
++				i_price = rs.getFloat("I_PRICE");
++				i_name = rs.getString("I_NAME");
++				i_data = rs.getString("I_DATA");
++				rs.close();
++				rs = null;
++
++				itemPrices[ol_number - 1] = i_price;
++				itemNames[ol_number - 1] = i_name;
++
++
++				stmtGetStock.setInt(1, ol_i_id);
++				stmtGetStock.setInt(2, ol_supply_w_id);
++				rs = stmtGetStock.executeQuery();
++				if (!rs.next())
++					throw new RuntimeException("I_ID=" + ol_i_id
++							+ " not found!");
++				s_quantity = rs.getInt("S_QUANTITY");
++				s_data = rs.getString("S_DATA");
++				s_dist_01 = rs.getString("S_DIST_01");
++				s_dist_02 = rs.getString("S_DIST_02");
++				s_dist_03 = rs.getString("S_DIST_03");
++				s_dist_04 = rs.getString("S_DIST_04");
++				s_dist_05 = rs.getString("S_DIST_05");
++				s_dist_06 = rs.getString("S_DIST_06");
++				s_dist_07 = rs.getString("S_DIST_07");
++				s_dist_08 = rs.getString("S_DIST_08");
++				s_dist_09 = rs.getString("S_DIST_09");
++				s_dist_10 = rs.getString("S_DIST_10");
++				rs.close();
++				rs = null;
++
++				stockQuantities[ol_number - 1] = s_quantity;
++
++				if (s_quantity - ol_quantity >= 10) {
++					s_quantity -= ol_quantity;
++				} else {
++					s_quantity += -ol_quantity + 91;
++				}
++
++				if (ol_supply_w_id == w_id) {
++					s_remote_cnt_increment = 0;
++				} else {
++					s_remote_cnt_increment = 1;
++				}
++
++
++				stmtUpdateStock.setInt(1, s_quantity);
++				stmtUpdateStock.setInt(2, ol_quantity);
++				stmtUpdateStock.setInt(3, s_remote_cnt_increment);
++				stmtUpdateStock.setInt(4, ol_i_id);
++				stmtUpdateStock.setInt(5, ol_supply_w_id);
++				stmtUpdateStock.addBatch();
++
++				ol_amount = ol_quantity * i_price;
++				orderLineAmounts[ol_number - 1] = ol_amount;
++				total_amount += ol_amount;
++
++				if (i_data.indexOf("GENERIC") != -1
++						&& s_data.indexOf("GENERIC") != -1) {
++					brandGeneric[ol_number - 1] = 'B';
++				} else {
++					brandGeneric[ol_number - 1] = 'G';
++				}
++
++				switch ((int) d_id) {
++				case 1:
++					ol_dist_info = s_dist_01;
++					break;
++				case 2:
++					ol_dist_info = s_dist_02;
++					break;
++				case 3:
++					ol_dist_info = s_dist_03;
++					break;
++				case 4:
++					ol_dist_info = s_dist_04;
++					break;
++				case 5:
++					ol_dist_info = s_dist_05;
++					break;
++				case 6:
++					ol_dist_info = s_dist_06;
++					break;
++				case 7:
++					ol_dist_info = s_dist_07;
++					break;
++				case 8:
++					ol_dist_info = s_dist_08;
++					break;
++				case 9:
++					ol_dist_info = s_dist_09;
++					break;
++				case 10:
++					ol_dist_info = s_dist_10;
++					break;
++				}
++
++				stmtInsertOrderLine.setInt(1, o_id);
++				stmtInsertOrderLine.setInt(2, d_id);
++				stmtInsertOrderLine.setInt(3, w_id);
++				stmtInsertOrderLine.setInt(4, ol_number);
++				stmtInsertOrderLine.setInt(5, ol_i_id);
++				stmtInsertOrderLine.setInt(6, ol_supply_w_id);
++				stmtInsertOrderLine.setInt(7, ol_quantity);
++				stmtInsertOrderLine.setFloat(8, ol_amount);
++				stmtInsertOrderLine.setString(9, ol_dist_info);
++				stmtInsertOrderLine.addBatch();
++
++			} // end-for
++
++			stmtInsertOrderLine.executeBatch();
++			stmtUpdateStock.executeBatch();
++
++			total_amount *= (1 + w_tax + d_tax) * (1 - c_discount);
++		} catch(UserAbortException userEx)
++		{
++		    LOG.debug("Caught an expected error in New Order");
++		    throw userEx;
++		}
++	    finally {
++            if (stmtInsertOrderLine != null)
++                stmtInsertOrderLine.clearBatch();
++              if (stmtUpdateStock != null)
++                stmtUpdateStock.clearBatch();
++        }
++
++	}
++
++}
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/OrderStatus.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/OrderStatus.java
+new file mode 100644
+index 0000000..1c3d93f
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/OrderStatus.java
+@@ -0,0 +1,256 @@
++package com.oltpbenchmark.benchmarks.tpcc.procedures;
++
++import java.sql.Connection;
++import java.sql.PreparedStatement;
++import java.sql.ResultSet;
++import java.sql.SQLException;
++import java.sql.Timestamp;
++import java.util.ArrayList;
++import java.util.Random;
++
++import org.apache.log4j.Logger;
++
++import com.oltpbenchmark.api.SQLStmt;
++import com.oltpbenchmark.benchmarks.tpcc.TPCCConstants;
++import com.oltpbenchmark.benchmarks.tpcc.TPCCUtil;
++import com.oltpbenchmark.benchmarks.tpcc.TPCCWorker;
++import com.oltpbenchmark.benchmarks.tpcc.pojo.Customer;
++
++public class OrderStatus extends TPCCProcedure {
++
++    private static final Logger LOG = Logger.getLogger(OrderStatus.class);
++
++	public SQLStmt ordStatGetNewestOrdSQL = new SQLStmt("SELECT O_ID, O_CARRIER_ID, O_ENTRY_D FROM " + TPCCConstants.TABLENAME_OPENORDER
++			+ " WHERE O_W_ID = ?"
++			+ " AND O_D_ID = ? AND O_C_ID = ? ORDER BY O_ID DESC LIMIT 1");
++
++	public SQLStmt ordStatGetOrderLinesSQL = new SQLStmt("SELECT OL_I_ID, OL_SUPPLY_W_ID, OL_QUANTITY,"
++			+ " OL_AMOUNT, OL_DELIVERY_D"
++			+ " FROM " + TPCCConstants.TABLENAME_ORDERLINE
++			+ " WHERE OL_O_ID = ?"
++			+ " AND OL_D_ID =?"
++			+ " AND OL_W_ID = ?");
++
++	public SQLStmt payGetCustSQL = new SQLStmt("SELECT C_FIRST, C_MIDDLE, C_LAST, C_STREET_1, C_STREET_2, "
++			+ "C_CITY, C_STATE, C_ZIP, C_PHONE, C_CREDIT, C_CREDIT_LIM, "
++			+ "C_DISCOUNT, C_BALANCE, C_YTD_PAYMENT, C_PAYMENT_CNT, C_SINCE FROM " + TPCCConstants.TABLENAME_CUSTOMER + " WHERE "
++			+ "C_W_ID = ? AND C_D_ID = ? AND C_ID = ?");
++
++	public SQLStmt customerByNameSQL = new SQLStmt("SELECT C_FIRST, C_MIDDLE, C_ID, C_STREET_1, C_STREET_2, C_CITY, "
++			+ "C_STATE, C_ZIP, C_PHONE, C_CREDIT, C_CREDIT_LIM, C_DISCOUNT, "
++			+ "C_BALANCE, C_YTD_PAYMENT, C_PAYMENT_CNT, C_SINCE FROM " + TPCCConstants.TABLENAME_CUSTOMER
++			+ " WHERE C_W_ID = ? AND C_D_ID = ? AND C_LAST = ? ORDER BY C_FIRST");
++
++	private PreparedStatement ordStatGetNewestOrd = null;
++	private PreparedStatement ordStatGetOrderLines = null;
++	private PreparedStatement payGetCust = null;
++	private PreparedStatement customerByName = null;
++
++
++	 public ResultSet run(Connection conn, Random gen,
++				int terminalWarehouseID, int numWarehouses,
++				int terminalDistrictLowerID, int terminalDistrictUpperID,
++				TPCCWorker w) throws SQLException{
++
++
++			//initializing all prepared statements
++			payGetCust =this.getPreparedStatement(conn, payGetCustSQL);
++			customerByName=this.getPreparedStatement(conn, customerByNameSQL);
++			ordStatGetNewestOrd =this.getPreparedStatement(conn, ordStatGetNewestOrdSQL);
++			ordStatGetOrderLines=this.getPreparedStatement(conn, ordStatGetOrderLinesSQL);
++
++			int districtID = TPCCUtil.randomNumber(terminalDistrictLowerID,terminalDistrictUpperID, gen);
++			boolean isCustomerByName=false;
++			int y = TPCCUtil.randomNumber(1, 100, gen);
++			String customerLastName = null;
++			int customerID = -1;
++			if (y <= 60) {
++				isCustomerByName = true;
++				customerLastName = TPCCUtil
++						.getNonUniformRandomLastNameForRun(gen);
++			} else {
++				isCustomerByName = false;
++				customerID = TPCCUtil.getCustomerID(gen);
++			}
++
++			orderStatusTransaction(terminalWarehouseID, districtID,
++							customerID, customerLastName, isCustomerByName, conn, w);
++			return null;
++	 }
++
++	// attention duplicated code across trans... ok for now to maintain separate prepared statements
++			public Customer getCustomerById(int c_w_id, int c_d_id, int c_id, Connection conn)
++					throws SQLException {
++
++				payGetCust.setInt(1, c_w_id);
++				payGetCust.setInt(2, c_d_id);
++				payGetCust.setInt(3, c_id);
++				ResultSet rs = payGetCust.executeQuery();
++				if (!rs.next()) {
++					throw new RuntimeException("C_ID=" + c_id + " C_D_ID=" + c_d_id
++							+ " C_W_ID=" + c_w_id + " not found!");
++				}
++
++				Customer c = TPCCUtil.newCustomerFromResults(rs);
++				c.c_id = c_id;
++				c.c_last = rs.getString("C_LAST");
++				rs.close();
++				return c;
++			}
++
++			private void orderStatusTransaction(int w_id, int d_id, int c_id,
++					String c_last, boolean c_by_name, Connection conn, TPCCWorker w) throws SQLException {
++				int o_id = -1, o_carrier_id = -1;
++				Timestamp entdate;
++				ArrayList<String> orderLines = new ArrayList<String>();
++
++				Customer c;
++				if (c_by_name) {
++					assert c_id <= 0;
++					// TODO: This only needs c_balance, c_first, c_middle, c_id
++					// only fetch those columns?
++					c = getCustomerByName(w_id, d_id, c_last);
++				} else {
++					assert c_last == null;
++					c = getCustomerById(w_id, d_id, c_id,conn);
++				}
++
++				// find the newest order for the customer
++				// retrieve the carrier & order date for the most recent order.
++
++
++				ordStatGetNewestOrd.setInt(1, w_id);
++				ordStatGetNewestOrd.setInt(2, d_id);
++				ordStatGetNewestOrd.setInt(3, c.c_id);
++				ResultSet rs = ordStatGetNewestOrd.executeQuery();
++
++				if (!rs.next()) {
++					throw new RuntimeException("No orders for O_W_ID=" + w_id
++							+ " O_D_ID=" + d_id + " O_C_ID=" + c.c_id);
++				}
++
++				o_id = rs.getInt("O_ID");
++				o_carrier_id = rs.getInt("O_CARRIER_ID");
++				entdate = rs.getTimestamp("O_ENTRY_D");
++				rs.close();
++				rs = null;
++
++				// retrieve the order lines for the most recent order
++
++
++				ordStatGetOrderLines.setInt(1, o_id);
++				ordStatGetOrderLines.setInt(2, d_id);
++				ordStatGetOrderLines.setInt(3, w_id);
++				rs = ordStatGetOrderLines.executeQuery();
++
++				while (rs.next()) {
++					StringBuilder orderLine = new StringBuilder();
++					orderLine.append("[");
++					orderLine.append(rs.getLong("OL_SUPPLY_W_ID"));
++					orderLine.append(" - ");
++					orderLine.append(rs.getLong("OL_I_ID"));
++					orderLine.append(" - ");
++					orderLine.append(rs.getLong("OL_QUANTITY"));
++					orderLine.append(" - ");
++					orderLine.append(TPCCUtil.formattedDouble(rs
++							.getDouble("OL_AMOUNT")));
++					orderLine.append(" - ");
++					if (rs.getTimestamp("OL_DELIVERY_D") != null)
++						orderLine.append(rs.getTimestamp("OL_DELIVERY_D"));
++					else
++						orderLine.append("99-99-9999");
++					orderLine.append("]");
++					orderLines.add(orderLine.toString());
++				}
++				rs.close();
++				rs = null;
++
++				// commit the transaction
++				conn.commit();
++
++				StringBuilder terminalMessage = new StringBuilder();
++				terminalMessage.append("\n");
++				terminalMessage
++						.append("+-------------------------- ORDER-STATUS -------------------------+\n");
++				terminalMessage.append(" Date: ");
++				terminalMessage.append(TPCCUtil.getCurrentTime());
++				terminalMessage.append("\n\n Warehouse: ");
++				terminalMessage.append(w_id);
++				terminalMessage.append("\n District:  ");
++				terminalMessage.append(d_id);
++				terminalMessage.append("\n\n Customer:  ");
++				terminalMessage.append(c.c_id);
++				terminalMessage.append("\n   Name:    ");
++				terminalMessage.append(c.c_first);
++				terminalMessage.append(" ");
++				terminalMessage.append(c.c_middle);
++				terminalMessage.append(" ");
++				terminalMessage.append(c.c_last);
++				terminalMessage.append("\n   Balance: ");
++				terminalMessage.append(c.c_balance);
++				terminalMessage.append("\n\n");
++				if (o_id == -1) {
++					terminalMessage.append(" Customer has no orders placed.\n");
++				} else {
++					terminalMessage.append(" Order-Number: ");
++					terminalMessage.append(o_id);
++					terminalMessage.append("\n    Entry-Date: ");
++					terminalMessage.append(entdate);
++					terminalMessage.append("\n    Carrier-Number: ");
++					terminalMessage.append(o_carrier_id);
++					terminalMessage.append("\n\n");
++					if (orderLines.size() != 0) {
++						terminalMessage
++								.append(" [Supply_W - Item_ID - Qty - Amount - Delivery-Date]\n");
++						for (String orderLine : orderLines) {
++							terminalMessage.append(" ");
++							terminalMessage.append(orderLine);
++							terminalMessage.append("\n");
++						}
++					} else {
++					    if(LOG.isTraceEnabled()) LOG.trace(" This Order has no Order-Lines.\n");
++					}
++				}
++				terminalMessage.append("+-----------------------------------------------------------------+\n\n");
++				if(LOG.isTraceEnabled()) LOG.trace(terminalMessage.toString());
++			}
++
++			//attention this code is repeated in other transacitons... ok for now to allow for separate statements.
++			public Customer getCustomerByName(int c_w_id, int c_d_id, String c_last)
++					throws SQLException {
++				ArrayList<Customer> customers = new ArrayList<Customer>();
++
++				customerByName.setInt(1, c_w_id);
++				customerByName.setInt(2, c_d_id);
++				customerByName.setString(3, c_last);
++				ResultSet rs = customerByName.executeQuery();
++
++				while (rs.next()) {
++					Customer c = TPCCUtil.newCustomerFromResults(rs);
++					c.c_id = rs.getInt("C_ID");
++					c.c_last = c_last;
++					customers.add(c);
++				}
++				rs.close();
++
++				if (customers.size() == 0) {
++					throw new RuntimeException("C_LAST=" + c_last + " C_D_ID=" + c_d_id
++							+ " C_W_ID=" + c_w_id + " not found!");
++				}
++
++				// TPC-C 2.5.2.2: Position n / 2 rounded up to the next integer, but
++				// that
++				// counts starting from 1.
++				int index = customers.size() / 2;
++				if (customers.size() % 2 == 0) {
++					index -= 1;
++				}
++				return customers.get(index);
++			}
++
++
++
++}
++
++
++
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java
+new file mode 100644
+index 0000000..5b801e3
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/Payment.java
+@@ -0,0 +1,404 @@
++package com.oltpbenchmark.benchmarks.tpcc.procedures;
++
++import java.sql.Connection;
++import java.sql.PreparedStatement;
++import java.sql.ResultSet;
++import java.sql.SQLException;
++import java.sql.Timestamp;
++import java.util.ArrayList;
++import java.util.Random;
++
++import org.apache.log4j.Logger;
++
++import com.oltpbenchmark.api.SQLStmt;
++import com.oltpbenchmark.benchmarks.tpcc.TPCCConstants;
++import com.oltpbenchmark.benchmarks.tpcc.TPCCUtil;
++import com.oltpbenchmark.benchmarks.tpcc.TPCCWorker;
++import com.oltpbenchmark.benchmarks.tpcc.jTPCCConfig;
++import com.oltpbenchmark.benchmarks.tpcc.pojo.Customer;
++
++public class Payment extends TPCCProcedure {
++
++    private static final Logger LOG = Logger.getLogger(Payment.class);
++
++	public SQLStmt payUpdateWhseSQL = new SQLStmt("UPDATE " + TPCCConstants.TABLENAME_WAREHOUSE + " SET W_YTD = W_YTD + ?  WHERE W_ID = ? ");
++	public SQLStmt payGetWhseSQL = new SQLStmt("SELECT W_STREET_1, W_STREET_2, W_CITY, W_STATE, W_ZIP, W_NAME"
++			+ " FROM " + TPCCConstants.TABLENAME_WAREHOUSE + " WHERE W_ID = ?");
++	public SQLStmt payUpdateDistSQL = new SQLStmt("UPDATE " + TPCCConstants.TABLENAME_DISTRICT + " SET D_YTD = D_YTD + ? WHERE D_W_ID = ? AND D_ID = ?");
++	public SQLStmt payGetDistSQL = new SQLStmt("SELECT D_STREET_1, D_STREET_2, D_CITY, D_STATE, D_ZIP, D_NAME"
++			+ " FROM " + TPCCConstants.TABLENAME_DISTRICT + " WHERE D_W_ID = ? AND D_ID = ?");
++	public SQLStmt payGetCustSQL = new SQLStmt("SELECT C_FIRST, C_MIDDLE, C_LAST, C_STREET_1, C_STREET_2, "
++			+ "C_CITY, C_STATE, C_ZIP, C_PHONE, C_CREDIT, C_CREDIT_LIM, "
++			+ "C_DISCOUNT, C_BALANCE, C_YTD_PAYMENT, C_PAYMENT_CNT, C_SINCE FROM " + TPCCConstants.TABLENAME_CUSTOMER + " WHERE "
++			+ "C_W_ID = ? AND C_D_ID = ? AND C_ID = ?");
++	public SQLStmt payGetCustCdataSQL = new SQLStmt("SELECT C_DATA FROM " + TPCCConstants.TABLENAME_CUSTOMER + " WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?");
++	public SQLStmt payUpdateCustBalCdataSQL = new SQLStmt("UPDATE " + TPCCConstants.TABLENAME_CUSTOMER + " SET C_BALANCE = ?, C_YTD_PAYMENT = ?, "
++			+ "C_PAYMENT_CNT = ?, C_DATA = ? "
++			+ "WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?");
++	public SQLStmt payUpdateCustBalSQL = new SQLStmt("UPDATE " + TPCCConstants.TABLENAME_CUSTOMER + " SET C_BALANCE = ?, C_YTD_PAYMENT = ?, "
++			+ "C_PAYMENT_CNT = ? WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?");
++	public SQLStmt payInsertHistSQL = new SQLStmt("INSERT INTO " + TPCCConstants.TABLENAME_HISTORY + " (H_C_D_ID, H_C_W_ID, H_C_ID, H_D_ID, H_W_ID, H_DATE, H_AMOUNT, H_DATA) "
++			+ " VALUES (?,?,?,?,?,?,?,?)");
++	public SQLStmt customerByNameSQL = new SQLStmt("SELECT C_FIRST, C_MIDDLE, C_ID, C_STREET_1, C_STREET_2, C_CITY, "
++			+ "C_STATE, C_ZIP, C_PHONE, C_CREDIT, C_CREDIT_LIM, C_DISCOUNT, "
++			+ "C_BALANCE, C_YTD_PAYMENT, C_PAYMENT_CNT, C_SINCE FROM " + TPCCConstants.TABLENAME_CUSTOMER + " "
++			+ "WHERE C_W_ID = ? AND C_D_ID = ? AND C_LAST = ? ORDER BY C_FIRST");
++
++
++
++	// Payment Txn
++	private PreparedStatement payUpdateWhse = null;
++	private PreparedStatement payGetWhse = null;
++	private PreparedStatement payUpdateDist = null;
++	private PreparedStatement payGetDist = null;
++	private PreparedStatement payGetCust = null;
++	private PreparedStatement payGetCustCdata = null;
++	private PreparedStatement payUpdateCustBalCdata = null;
++	private PreparedStatement payUpdateCustBal = null;
++	private PreparedStatement payInsertHist = null;
++	private PreparedStatement customerByName = null;
++
++
++
++	 public ResultSet run(Connection conn, Random gen,
++				int terminalWarehouseID, int numWarehouses,
++				int terminalDistrictLowerID, int terminalDistrictUpperID,
++				TPCCWorker w) throws SQLException{
++
++
++			//initializing all prepared statements
++			payUpdateWhse=this.getPreparedStatement(conn, payUpdateWhseSQL);
++			payGetWhse=this.getPreparedStatement(conn, payGetWhseSQL);
++			payUpdateDist=this.getPreparedStatement(conn, payUpdateDistSQL);
++			payGetDist =this.getPreparedStatement(conn, payGetDistSQL);
++			payGetCust =this.getPreparedStatement(conn, payGetCustSQL);
++			payGetCustCdata =this.getPreparedStatement(conn, payGetCustCdataSQL);
++			payUpdateCustBalCdata =this.getPreparedStatement(conn, payUpdateCustBalCdataSQL);
++			payUpdateCustBal =this.getPreparedStatement(conn, payUpdateCustBalSQL);
++			payInsertHist =this.getPreparedStatement(conn, payInsertHistSQL);
++			customerByName=this.getPreparedStatement(conn, customerByNameSQL);
++
++
++		    // payUpdateWhse =this.getPreparedStatement(conn, payUpdateWhseSQL);
++
++
++            int districtID = TPCCUtil.randomNumber(terminalDistrictLowerID,terminalDistrictUpperID, gen);
++        	int customerID = TPCCUtil.getCustomerID(gen);
++
++        	int x = TPCCUtil.randomNumber(1, 100, gen);
++        	int customerDistrictID;
++        	int customerWarehouseID;
++        	if (x <= 85) {
++        		customerDistrictID = districtID;
++        		customerWarehouseID = terminalWarehouseID;
++        	} else {
++        		customerDistrictID = TPCCUtil.randomNumber(1,
++        				jTPCCConfig.configDistPerWhse, gen);
++        		do {
++        			customerWarehouseID = TPCCUtil.randomNumber(1,
++        					numWarehouses, gen);
++        		} while (customerWarehouseID == terminalWarehouseID
++        				&& numWarehouses > 1);
++        	}
++
++        	long y = TPCCUtil.randomNumber(1, 100, gen);
++        	boolean customerByName;
++        	String customerLastName = null;
++        	customerID = -1;
++        	if (y <= 60) {
++        		// 60% lookups by last name
++        		customerByName = true;
++        		customerLastName = TPCCUtil
++        				.getNonUniformRandomLastNameForRun(gen);
++        	} else {
++        		// 40% lookups by customer ID
++        		customerByName = false;
++        		customerID = TPCCUtil.getCustomerID(gen);
++        	}
++
++        	float paymentAmount = (float) (TPCCUtil.randomNumber(100, 500000, gen) / 100.0);
++
++			paymentTransaction(terminalWarehouseID,
++					customerWarehouseID, paymentAmount, districtID,
++					customerDistrictID, customerID,
++					customerLastName, customerByName, conn, w);
++
++			return null;
++	}
++
++    private void paymentTransaction(int w_id, int c_w_id, float h_amount,
++				int d_id, int c_d_id, int c_id, String c_last, boolean c_by_name, Connection conn, TPCCWorker w)
++				throws SQLException {
++			String w_street_1, w_street_2, w_city, w_state, w_zip, w_name;
++			String d_street_1, d_street_2, d_city, d_state, d_zip, d_name;
++
++
++			payUpdateWhse.setFloat(1, h_amount);
++			payUpdateWhse.setInt(2, w_id);
++			// MySQL reports deadlocks due to lock upgrades:
++			// t1: read w_id = x; t2: update w_id = x; t1 update w_id = x
++			int result = payUpdateWhse.executeUpdate();
++			if (result == 0)
++				throw new RuntimeException("W_ID=" + w_id + " not found!");
++
++
++			payGetWhse.setInt(1, w_id);
++			ResultSet rs = payGetWhse.executeQuery();
++			if (!rs.next())
++				throw new RuntimeException("W_ID=" + w_id + " not found!");
++			w_street_1 = rs.getString("W_STREET_1");
++			w_street_2 = rs.getString("W_STREET_2");
++			w_city = rs.getString("W_CITY");
++			w_state = rs.getString("W_STATE");
++			w_zip = rs.getString("W_ZIP");
++			w_name = rs.getString("W_NAME");
++			rs.close();
++			rs = null;
++
++
++			payUpdateDist.setFloat(1, h_amount);
++			payUpdateDist.setInt(2, w_id);
++			payUpdateDist.setInt(3, d_id);
++			result = payUpdateDist.executeUpdate();
++			if (result == 0)
++				throw new RuntimeException("D_ID=" + d_id + " D_W_ID=" + w_id
++						+ " not found!");
++
++
++			payGetDist.setInt(1, w_id);
++			payGetDist.setInt(2, d_id);
++			rs = payGetDist.executeQuery();
++			if (!rs.next())
++				throw new RuntimeException("D_ID=" + d_id + " D_W_ID=" + w_id
++						+ " not found!");
++			d_street_1 = rs.getString("D_STREET_1");
++			d_street_2 = rs.getString("D_STREET_2");
++			d_city = rs.getString("D_CITY");
++			d_state = rs.getString("D_STATE");
++			d_zip = rs.getString("D_ZIP");
++			d_name = rs.getString("D_NAME");
++			rs.close();
++			rs = null;
++
++			Customer c;
++			if (c_by_name) {
++				assert c_id <= 0;
++				c = getCustomerByName(c_w_id, c_d_id, c_last);
++			} else {
++				assert c_last == null;
++				c = getCustomerById(c_w_id, c_d_id, c_id, conn);
++			}
++
++			c.c_balance -= h_amount;
++			c.c_ytd_payment += h_amount;
++			c.c_payment_cnt += 1;
++			String c_data = null;
++			if (c.c_credit.equals("BC")) { // bad credit
++
++
++				payGetCustCdata.setInt(1, c_w_id);
++				payGetCustCdata.setInt(2, c_d_id);
++				payGetCustCdata.setInt(3, c.c_id);
++				rs = payGetCustCdata.executeQuery();
++				if (!rs.next())
++					throw new RuntimeException("C_ID=" + c.c_id + " C_W_ID="
++							+ c_w_id + " C_D_ID=" + c_d_id + " not found!");
++				c_data = rs.getString("C_DATA");
++				rs.close();
++				rs = null;
++
++				c_data = c.c_id + " " + c_d_id + " " + c_w_id + " " + d_id + " "
++						+ w_id + " " + h_amount + " | " + c_data;
++				if (c_data.length() > 500)
++					c_data = c_data.substring(0, 500);
++
++
++				payUpdateCustBalCdata.setFloat(1, c.c_balance);
++				payUpdateCustBalCdata.setFloat(2, c.c_ytd_payment);
++				payUpdateCustBalCdata.setInt(3, c.c_payment_cnt);
++				payUpdateCustBalCdata.setString(4, c_data);
++				payUpdateCustBalCdata.setInt(5, c_w_id);
++				payUpdateCustBalCdata.setInt(6, c_d_id);
++				payUpdateCustBalCdata.setInt(7, c.c_id);
++				result = payUpdateCustBalCdata.executeUpdate();
++
++				if (result == 0)
++					throw new RuntimeException(
++							"Error in PYMNT Txn updating Customer C_ID=" + c.c_id
++									+ " C_W_ID=" + c_w_id + " C_D_ID=" + c_d_id);
++
++			} else { // GoodCredit
++
++
++				payUpdateCustBal.setFloat(1, c.c_balance);
++				payUpdateCustBal.setFloat(2, c.c_ytd_payment);
++				payUpdateCustBal.setFloat(3, c.c_payment_cnt);
++				payUpdateCustBal.setInt(4, c_w_id);
++				payUpdateCustBal.setInt(5, c_d_id);
++				payUpdateCustBal.setInt(6, c.c_id);
++				result = payUpdateCustBal.executeUpdate();
++
++				if (result == 0)
++					throw new RuntimeException("C_ID=" + c.c_id + " C_W_ID="
++							+ c_w_id + " C_D_ID=" + c_d_id + " not found!");
++
++			}
++
++			if (w_name.length() > 10)
++				w_name = w_name.substring(0, 10);
++			if (d_name.length() > 10)
++				d_name = d_name.substring(0, 10);
++			String h_data = w_name + "    " + d_name;
++
++
++			payInsertHist.setInt(1, c_d_id);
++			payInsertHist.setInt(2, c_w_id);
++			payInsertHist.setInt(3, c.c_id);
++			payInsertHist.setInt(4, d_id);
++			payInsertHist.setInt(5, w_id);
++			payInsertHist
++					.setTimestamp(6, new Timestamp(System.currentTimeMillis()));
++			payInsertHist.setFloat(7, h_amount);
++			payInsertHist.setString(8, h_data);
++			payInsertHist.executeUpdate();
++
++			conn.commit();
++
++			StringBuilder terminalMessage = new StringBuilder();
++			terminalMessage
++					.append("\n+---------------------------- PAYMENT ----------------------------+");
++			terminalMessage.append("\n Date: " + TPCCUtil.getCurrentTime());
++			terminalMessage.append("\n\n Warehouse: ");
++			terminalMessage.append(w_id);
++			terminalMessage.append("\n   Street:  ");
++			terminalMessage.append(w_street_1);
++			terminalMessage.append("\n   Street:  ");
++			terminalMessage.append(w_street_2);
++			terminalMessage.append("\n   City:    ");
++			terminalMessage.append(w_city);
++			terminalMessage.append("   State: ");
++			terminalMessage.append(w_state);
++			terminalMessage.append("  Zip: ");
++			terminalMessage.append(w_zip);
++			terminalMessage.append("\n\n District:  ");
++			terminalMessage.append(d_id);
++			terminalMessage.append("\n   Street:  ");
++			terminalMessage.append(d_street_1);
++			terminalMessage.append("\n   Street:  ");
++			terminalMessage.append(d_street_2);
++			terminalMessage.append("\n   City:    ");
++			terminalMessage.append(d_city);
++			terminalMessage.append("   State: ");
++			terminalMessage.append(d_state);
++			terminalMessage.append("  Zip: ");
++			terminalMessage.append(d_zip);
++			terminalMessage.append("\n\n Customer:  ");
++			terminalMessage.append(c.c_id);
++			terminalMessage.append("\n   Name:    ");
++			terminalMessage.append(c.c_first);
++			terminalMessage.append(" ");
++			terminalMessage.append(c.c_middle);
++			terminalMessage.append(" ");
++			terminalMessage.append(c.c_last);
++			terminalMessage.append("\n   Street:  ");
++			terminalMessage.append(c.c_street_1);
++			terminalMessage.append("\n   Street:  ");
++			terminalMessage.append(c.c_street_2);
++			terminalMessage.append("\n   City:    ");
++			terminalMessage.append(c.c_city);
++			terminalMessage.append("   State: ");
++			terminalMessage.append(c.c_state);
++			terminalMessage.append("  Zip: ");
++			terminalMessage.append(c.c_zip);
++			terminalMessage.append("\n   Since:   ");
++			if (c.c_since != null) {
++				terminalMessage.append(c.c_since.toString());
++			} else {
++				terminalMessage.append("");
++			}
++			terminalMessage.append("\n   Credit:  ");
++			terminalMessage.append(c.c_credit);
++			terminalMessage.append("\n   %Disc:   ");
++			terminalMessage.append(c.c_discount);
++			terminalMessage.append("\n   Phone:   ");
++			terminalMessage.append(c.c_phone);
++			terminalMessage.append("\n\n Amount Paid:      ");
++			terminalMessage.append(h_amount);
++			terminalMessage.append("\n Credit Limit:     ");
++			terminalMessage.append(c.c_credit_lim);
++			terminalMessage.append("\n New Cust-Balance: ");
++			terminalMessage.append(c.c_balance);
++			if (c.c_credit.equals("BC")) {
++				if (c_data.length() > 50) {
++					terminalMessage.append("\n\n Cust-Data: "
++							+ c_data.substring(0, 50));
++					int data_chunks = c_data.length() > 200 ? 4
++							: c_data.length() / 50;
++					for (int n = 1; n < data_chunks; n++)
++						terminalMessage.append("\n            "
++								+ c_data.substring(n * 50, (n + 1) * 50));
++				} else {
++					terminalMessage.append("\n\n Cust-Data: " + c_data);
++				}
++			}
++			terminalMessage.append("\n+-----------------------------------------------------------------+\n\n");
++
++			if(LOG.isTraceEnabled())LOG.trace(terminalMessage.toString());
++
++		}
++
++	 	// attention duplicated code across trans... ok for now to maintain separate prepared statements
++		public Customer getCustomerById(int c_w_id, int c_d_id, int c_id, Connection conn)
++				throws SQLException {
++
++			payGetCust.setInt(1, c_w_id);
++			payGetCust.setInt(2, c_d_id);
++			payGetCust.setInt(3, c_id);
++			ResultSet rs = payGetCust.executeQuery();
++			if (!rs.next()) {
++				throw new RuntimeException("C_ID=" + c_id + " C_D_ID=" + c_d_id
++						+ " C_W_ID=" + c_w_id + " not found!");
++			}
++
++			Customer c = TPCCUtil.newCustomerFromResults(rs);
++			c.c_id = c_id;
++			c.c_last = rs.getString("C_LAST");
++			rs.close();
++			return c;
++		}
++
++		//attention this code is repeated in other transacitons... ok for now to allow for separate statements.
++		public Customer getCustomerByName(int c_w_id, int c_d_id, String c_last)
++				throws SQLException {
++			ArrayList<Customer> customers = new ArrayList<Customer>();
++
++			customerByName.setInt(1, c_w_id);
++			customerByName.setInt(2, c_d_id);
++			customerByName.setString(3, c_last);
++			ResultSet rs = customerByName.executeQuery();
++
++			while (rs.next()) {
++				Customer c = TPCCUtil.newCustomerFromResults(rs);
++				c.c_id = rs.getInt("C_ID");
++				c.c_last = c_last;
++				customers.add(c);
++			}
++			rs.close();
++
++			if (customers.size() == 0) {
++				throw new RuntimeException("C_LAST=" + c_last + " C_D_ID=" + c_d_id
++						+ " C_W_ID=" + c_w_id + " not found!");
++			}
++
++			// TPC-C 2.5.2.2: Position n / 2 rounded up to the next integer, but
++			// that
++			// counts starting from 1.
++			int index = customers.size() / 2;
++			if (customers.size() % 2 == 0) {
++				index -= 1;
++			}
++			return customers.get(index);
++		}
++
++
++}
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/StockLevel.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/StockLevel.java
+new file mode 100644
+index 0000000..e4e2cce
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/StockLevel.java
+@@ -0,0 +1,112 @@
++package com.oltpbenchmark.benchmarks.tpcc.procedures;
++
++import java.sql.Connection;
++import java.sql.PreparedStatement;
++import java.sql.ResultSet;
++import java.sql.SQLException;
++import java.util.Random;
++
++import org.apache.log4j.Logger;
++
++import com.oltpbenchmark.api.SQLStmt;
++import com.oltpbenchmark.benchmarks.tpcc.TPCCConstants;
++import com.oltpbenchmark.benchmarks.tpcc.TPCCUtil;
++import com.oltpbenchmark.benchmarks.tpcc.TPCCWorker;
++
++public class StockLevel extends TPCCProcedure {
++
++    private static final Logger LOG = Logger.getLogger(StockLevel.class);
++
++	public SQLStmt stockGetDistOrderIdSQL = new SQLStmt("SELECT D_NEXT_O_ID FROM DISTRICT WHERE D_W_ID = ? AND D_ID = ?");
++
++	public SQLStmt stockGetCountStockSQL = new SQLStmt("SELECT COUNT(DISTINCT (S_I_ID)) AS STOCK_COUNT"
++			+ " FROM " + TPCCConstants.TABLENAME_ORDERLINE + ", " + TPCCConstants.TABLENAME_STOCK
++			+ " WHERE OL_W_ID = ?"
++			+ " AND OL_D_ID = ?"
++			+ " AND OL_O_ID < ?"
++			+ " AND OL_O_ID >= ? - 20"
++			+ " AND S_W_ID = ?"
++			+ " AND S_I_ID = OL_I_ID" + " AND S_QUANTITY < ?");
++
++	// Stock Level Txn
++	private PreparedStatement stockGetDistOrderId = null;
++	private PreparedStatement stockGetCountStock = null;
++
++	 public ResultSet run(Connection conn, Random gen,
++				int terminalWarehouseID, int numWarehouses,
++				int terminalDistrictLowerID, int terminalDistrictUpperID,
++				TPCCWorker w) throws SQLException {
++
++
++		stockGetDistOrderId = this.getPreparedStatement(conn, stockGetDistOrderIdSQL);
++		stockGetCountStock= this.getPreparedStatement(conn, stockGetCountStockSQL);
++
++		int threshold = TPCCUtil.randomNumber(10, 20, gen);
++
++		int districtID = TPCCUtil.randomNumber(terminalDistrictLowerID,terminalDistrictUpperID, gen);
++
++		stockLevelTransaction(terminalWarehouseID, districtID, threshold,conn,w);
++
++		return null;
++	 }
++
++
++
++		private void stockLevelTransaction(int w_id, int d_id, int threshold, Connection conn,TPCCWorker w)
++				throws SQLException {
++			int o_id = 0;
++			// XXX int i_id = 0;
++			int stock_count = 0;
++
++			// XXX District dist = new District();
++			// XXX OrderLine orln = new OrderLine();
++			// XXX Stock stck = new Stock();
++
++
++
++
++			stockGetDistOrderId.setInt(1, w_id);
++			stockGetDistOrderId.setInt(2, d_id);
++			ResultSet rs = stockGetDistOrderId.executeQuery();
++
++			if (!rs.next())
++				throw new RuntimeException("D_W_ID="+ w_id +" D_ID="+ d_id+" not found!");
++			o_id = rs.getInt("D_NEXT_O_ID");
++			rs.close();
++			rs = null;
++
++
++			stockGetCountStock.setInt(1, w_id);
++			stockGetCountStock.setInt(2, d_id);
++			stockGetCountStock.setInt(3, o_id);
++			stockGetCountStock.setInt(4, o_id);
++			stockGetCountStock.setInt(5, w_id);
++			stockGetCountStock.setInt(6, threshold);
++			rs = stockGetCountStock.executeQuery();
++
++			if (!rs.next())
++				throw new RuntimeException("OL_W_ID="+w_id +" OL_D_ID="+d_id+" OL_O_ID="+o_id+" not found!");
++			stock_count = rs.getInt("STOCK_COUNT");
++
++			conn.commit();
++
++			rs.close();
++			rs = null;
++
++			StringBuilder terminalMessage = new StringBuilder();
++			terminalMessage
++					.append("\n+-------------------------- STOCK-LEVEL --------------------------+");
++			terminalMessage.append("\n Warehouse: ");
++			terminalMessage.append(w_id);
++			terminalMessage.append("\n District:  ");
++			terminalMessage.append(d_id);
++			terminalMessage.append("\n\n Stock Level Threshold: ");
++			terminalMessage.append(threshold);
++			terminalMessage.append("\n Low Stock Count:       ");
++			terminalMessage.append(stock_count);
++			terminalMessage
++					.append("\n+-----------------------------------------------------------------+\n\n");
++			if(LOG.isTraceEnabled())LOG.trace(terminalMessage.toString());
++		}
++
++}
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/TPCCProcedure.java b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/TPCCProcedure.java
+new file mode 100644
+index 0000000..c495623
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/procedures/TPCCProcedure.java
+@@ -0,0 +1,18 @@
++package com.oltpbenchmark.benchmarks.tpcc.procedures;
++
++import java.sql.Connection;
++import java.sql.ResultSet;
++import java.sql.SQLException;
++import java.util.Random;
++
++import com.oltpbenchmark.api.Procedure;
++import com.oltpbenchmark.benchmarks.tpcc.TPCCWorker;
++
++public abstract class TPCCProcedure extends Procedure {
++
++    public abstract ResultSet run(Connection conn, Random gen,
++            int terminalWarehouseID, int numWarehouses,
++            int terminalDistrictLowerID, int terminalDistrictUpperID,
++            TPCCWorker w) throws SQLException;
++
++}
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-db2-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-db2-ddl.sql
+new file mode 100644
+index 0000000..b881867
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-db2-ddl.sql
+@@ -0,0 +1,140 @@
++--DECLARE CONTINUE HANDLER FOR NOT FOUND SET at_end = 1 end;
++--CONNECT TO TPCC USER db2user USING db2;
++
++--DROP TABLE customer;
++CREATE TABLE customer (
++  c_w_id int NOT NULL,
++  c_d_id int NOT NULL,
++  c_id int NOT NULL,
++  c_discount decimal(4,4) NOT NULL,
++  c_credit char(2) NOT NULL,
++  c_last varchar(16) NOT NULL,
++  c_first varchar(16) NOT NULL,
++  c_credit_lim decimal(12,2) NOT NULL,
++  c_balance decimal(12,2) NOT NULL,
++  c_ytd_payment float NOT NULL,
++  c_payment_cnt int NOT NULL,
++  c_delivery_cnt int NOT NULL,
++  c_street_1 varchar(20) NOT NULL,
++  c_street_2 varchar(20) NOT NULL,
++  c_city varchar(20) NOT NULL,
++  c_state char(2) NOT NULL,
++  c_zip char(9) NOT NULL,
++  c_phone char(16) NOT NULL,
++  c_since timestamp NOT NULL,
++  c_middle char(2) NOT NULL,
++  c_data varchar(500) NOT NULL,
++  PRIMARY KEY (c_w_id,c_d_id,c_id)
++);
++CREATE INDEX IDX_CUSTOMER_NAME ON customer (c_w_id,c_d_id,c_last,c_first);
++
++--DROP TABLE district;
++CREATE TABLE district (
++  d_w_id int NOT NULL,
++  d_id int NOT NULL,
++  d_ytd decimal(12,2) NOT NULL,
++  d_tax decimal(4,4) NOT NULL,
++  d_next_o_id int NOT NULL,
++  d_name varchar(10) NOT NULL,
++  d_street_1 varchar(20) NOT NULL,
++  d_street_2 varchar(20) NOT NULL,
++  d_city varchar(20) NOT NULL,
++  d_state char(2) NOT NULL,
++  d_zip char(9) NOT NULL,
++  PRIMARY KEY (d_w_id,d_id)
++);
++
++--DROP TABLE history;
++CREATE TABLE history (
++  h_c_id int NOT NULL,
++  h_c_d_id int NOT NULL,
++  h_c_w_id int NOT NULL,
++  h_d_id int NOT NULL,
++  h_w_id int NOT NULL,
++  h_date timestamp NOT NULL,
++  h_amount decimal(6,2) NOT NULL,
++  h_data varchar(24) NOT NULL
++);
++
++--DROP TABLE item;
++CREATE TABLE item (
++  i_id int NOT NULL,
++  i_name varchar(24) NOT NULL,
++  i_price decimal(5,2) NOT NULL,
++  i_data varchar(50) NOT NULL,
++  i_im_id int NOT NULL,
++  PRIMARY KEY (i_id)
++);
++
++--DROP TABLE new_order;
++CREATE TABLE new_order (
++  no_w_id int NOT NULL,
++  no_d_id int NOT NULL,
++  no_o_id int NOT NULL,
++  PRIMARY KEY (no_w_id,no_d_id,no_o_id)
++);
++
++--DROP TABLE oorder;
++CREATE TABLE oorder (
++  o_w_id int NOT NULL,
++  o_d_id int NOT NULL,
++  o_id int NOT NULL,
++  o_c_id int NOT NULL,
++  o_carrier_id int DEFAULT NULL,
++  o_ol_cnt decimal(2,0) NOT NULL,
++  o_all_local decimal(1,0) NOT NULL,
++  o_entry_d timestamp NOT NULL,
++  PRIMARY KEY (o_w_id,o_d_id,o_id),
++  UNIQUE (o_w_id,o_d_id,o_c_id,o_id)
++);
++
++--DROP TABLE order_line;
++CREATE TABLE order_line (
++  ol_w_id int NOT NULL,
++  ol_d_id int NOT NULL,
++  ol_o_id int NOT NULL,
++  ol_number int NOT NULL,
++  ol_i_id int NOT NULL,
++  ol_delivery_d timestamp,
++  ol_amount decimal(6,2) NOT NULL,
++  ol_supply_w_id int NOT NULL,
++  ol_quantity decimal(2,0) NOT NULL,
++  ol_dist_info char(24) NOT NULL,
++  PRIMARY KEY (ol_w_id,ol_d_id,ol_o_id,ol_number)
++);
++
++--DROP TABLE stock;
++CREATE TABLE stock (
++  s_w_id int NOT NULL,
++  s_i_id int NOT NULL,
++  s_quantity decimal(4,0) NOT NULL,
++  s_ytd decimal(8,2) NOT NULL,
++  s_order_cnt int NOT NULL,
++  s_remote_cnt int NOT NULL,
++  s_data varchar(50) NOT NULL,
++  s_dist_01 char(24) NOT NULL,
++  s_dist_02 char(24) NOT NULL,
++  s_dist_03 char(24) NOT NULL,
++  s_dist_04 char(24) NOT NULL,
++  s_dist_05 char(24) NOT NULL,
++  s_dist_06 char(24) NOT NULL,
++  s_dist_07 char(24) NOT NULL,
++  s_dist_08 char(24) NOT NULL,
++  s_dist_09 char(24) NOT NULL,
++  s_dist_10 char(24) NOT NULL,
++  PRIMARY KEY (s_w_id,s_i_id)
++);
++
++--DROP TABLE warehouse;
++CREATE TABLE warehouse (
++  w_id int NOT NULL,
++  w_ytd decimal(12,2) NOT NULL,
++  w_tax decimal(4,4) NOT NULL,
++  w_name varchar(10) NOT NULL,
++  w_street_1 varchar(20) NOT NULL,
++  w_street_2 varchar(20) NOT NULL,
++  w_city varchar(20) NOT NULL,
++  w_state char(2) NOT NULL,
++  w_zip char(9) NOT NULL,
++  PRIMARY KEY (w_id)
++);
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-ddl.sql
+new file mode 100644
+index 0000000..b7ab006
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-ddl.sql
+@@ -0,0 +1,141 @@
++-- TODO: C_SINCE ON UPDATE CURRENT_TIMESTAMP,
++DROP TABLE IF EXISTS CUSTOMER;
++CREATE TABLE CUSTOMER (
++  C_W_ID INT NOT NULL,
++  C_D_ID INT NOT NULL,
++  C_ID INT NOT NULL,
++  C_DISCOUNT DECIMAL(4,4) NOT NULL,
++  C_CREDIT CHAR(2) NOT NULL,
++  C_LAST VARCHAR(16) NOT NULL,
++  C_FIRST VARCHAR(16) NOT NULL,
++  C_CREDIT_LIM DECIMAL(12,2) NOT NULL,
++  C_BALANCE DECIMAL(12,2) NOT NULL,
++  C_YTD_PAYMENT FLOAT NOT NULL,
++  C_PAYMENT_CNT INT NOT NULL,
++  C_DELIVERY_CNT INT NOT NULL,
++  C_STREET_1 VARCHAR(20) NOT NULL,
++  C_STREET_2 VARCHAR(20) NOT NULL,
++  C_CITY VARCHAR(20) NOT NULL,
++  C_STATE CHAR(2) NOT NULL,
++  C_ZIP CHAR(9) NOT NULL,
++  C_PHONE CHAR(16) NOT NULL,
++  C_SINCE TIMESTAMP NOT NULL,
++  C_MIDDLE CHAR(2) NOT NULL,
++  C_DATA VARCHAR(500) NOT NULL,
++  PRIMARY KEY (C_W_ID,C_D_ID,C_ID)
++);
++CREATE INDEX IDX_CUSTOMER_NAME ON CUSTOMER (C_W_ID,C_D_ID,C_LAST,C_FIRST);
++
++DROP TABLE IF EXISTS DISTRICT;
++CREATE TABLE DISTRICT (
++  D_W_ID INT NOT NULL,
++  D_ID INT NOT NULL,
++  D_YTD DECIMAL(12,2) NOT NULL,
++  D_TAX DECIMAL(4,4) NOT NULL,
++  D_NEXT_O_ID INT NOT NULL,
++  D_NAME VARCHAR(10) NOT NULL,
++  D_STREET_1 VARCHAR(20) NOT NULL,
++  D_STREET_2 VARCHAR(20) NOT NULL,
++  D_CITY VARCHAR(20) NOT NULL,
++  D_STATE CHAR(2) NOT NULL,
++  D_ZIP CHAR(9) NOT NULL,
++  PRIMARY KEY (D_W_ID,D_ID)
++);
++
++-- TODO: H_DATE ON UPDATE CURRENT_TIMESTAMP
++DROP TABLE IF EXISTS HISTORY;
++CREATE TABLE HISTORY (
++  H_C_ID INT NOT NULL,
++  H_C_D_ID INT NOT NULL,
++  H_C_W_ID INT NOT NULL,
++  H_D_ID INT NOT NULL,
++  H_W_ID INT NOT NULL,
++  H_DATE TIMESTAMP NOT NULL,
++  H_AMOUNT DECIMAL(6,2) NOT NULL,
++  H_DATA VARCHAR(24) NOT NULL
++);
++
++DROP TABLE IF EXISTS ITEM;
++CREATE TABLE ITEM (
++  I_ID INT NOT NULL,
++  I_NAME VARCHAR(24) NOT NULL,
++  I_PRICE DECIMAL(5,2) NOT NULL,
++  I_DATA VARCHAR(50) NOT NULL,
++  I_IM_ID INT NOT NULL,
++  PRIMARY KEY (I_ID)
++);
++
++DROP TABLE IF EXISTS NEW_ORDER;
++CREATE TABLE NEW_ORDER (
++  NO_W_ID INT NOT NULL,
++  NO_D_ID INT NOT NULL,
++  NO_O_ID INT NOT NULL,
++  PRIMARY KEY (NO_W_ID,NO_D_ID,NO_O_ID)
++);
++
++-- TODO: O_ENTRY_D  ON UPDATE CURRENT_TIMESTAMP
++DROP TABLE IF EXISTS OORDER;
++CREATE TABLE OORDER (
++  O_W_ID INT NOT NULL,
++  O_D_ID INT NOT NULL,
++  O_ID INT NOT NULL,
++  O_C_ID INT NOT NULL,
++  O_CARRIER_ID INT DEFAULT NULL,
++  O_OL_CNT DECIMAL(2,0) NOT NULL,
++  O_ALL_LOCAL DECIMAL(1,0) NOT NULL,
++  O_ENTRY_D TIMESTAMP NOT NULL,
++  PRIMARY KEY (O_W_ID,O_D_ID,O_ID),
++  UNIQUE (O_W_ID,O_D_ID,O_C_ID,O_ID)
++);
++
++DROP TABLE IF EXISTS ORDER_LINE;
++CREATE TABLE ORDER_LINE (
++  OL_W_ID INT NOT NULL,
++  OL_D_ID INT NOT NULL,
++  OL_O_ID INT NOT NULL,
++  OL_NUMBER INT NOT NULL,
++  OL_I_ID INT NOT NULL,
++  OL_DELIVERY_D TIMESTAMP,
++  OL_AMOUNT DECIMAL(6,2) NOT NULL,
++  OL_SUPPLY_W_ID INT NOT NULL,
++  OL_QUANTITY DECIMAL(2,0) NOT NULL,
++  OL_DIST_INFO CHAR(24) NOT NULL,
++  PRIMARY KEY (OL_W_ID,OL_D_ID,OL_O_ID,OL_NUMBER)
++);
++
++DROP TABLE IF EXISTS STOCK;
++CREATE TABLE STOCK (
++  S_W_ID INT NOT NULL,
++  S_I_ID INT NOT NULL,
++  S_QUANTITY DECIMAL(4,0) NOT NULL,
++  S_YTD DECIMAL(8,2) NOT NULL,
++  S_ORDER_CNT INT NOT NULL,
++  S_REMOTE_CNT INT NOT NULL,
++  S_DATA VARCHAR(50) NOT NULL,
++  S_DIST_01 CHAR(24) NOT NULL,
++  S_DIST_02 CHAR(24) NOT NULL,
++  S_DIST_03 CHAR(24) NOT NULL,
++  S_DIST_04 CHAR(24) NOT NULL,
++  S_DIST_05 CHAR(24) NOT NULL,
++  S_DIST_06 CHAR(24) NOT NULL,
++  S_DIST_07 CHAR(24) NOT NULL,
++  S_DIST_08 CHAR(24) NOT NULL,
++  S_DIST_09 CHAR(24) NOT NULL,
++  S_DIST_10 CHAR(24) NOT NULL,
++  PRIMARY KEY (S_W_ID,S_I_ID)
++);
++
++DROP TABLE IF EXISTS WAREHOUSE;
++CREATE TABLE WAREHOUSE (
++  W_ID INT NOT NULL,
++  W_YTD DECIMAL(12,2) NOT NULL,
++  W_TAX DECIMAL(4,4) NOT NULL,
++  W_NAME VARCHAR(10) NOT NULL,
++  W_STREET_1 VARCHAR(20) NOT NULL,
++  W_STREET_2 VARCHAR(20) NOT NULL,
++  W_CITY VARCHAR(20) NOT NULL,
++  W_STATE CHAR(2) NOT NULL,
++  W_ZIP CHAR(9) NOT NULL,
++  PRIMARY KEY (W_ID)
++);
++
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-dialects.xml b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-dialects.xml
+new file mode 100644
+index 0000000..c351504
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-dialects.xml
+@@ -0,0 +1,64 @@
++<?xml version="1.0"?>
++<dialects>
++    <dialect type="ORACLE">
++        <procedure name="Delivery">
++            <statement name="delivGetOrderIdSQL">
++                SELECT NO_O_ID
++                    FROM NEW_ORDER
++                    WHERE NO_D_ID = ? AND NO_W_ID = ? AND ROWNUM = 1 ORDER BY NO_O_ID ASC
++            </statement>
++        </procedure>
++        <procedure name="OrderStatus">
++            <statement name="ordStatGetNewestOrdSQL">
++                SELECT O_ID, O_CARRIER_ID, O_ENTRY_D
++                        FROM OORDER
++                        WHERE O_W_ID = ? AND O_D_ID = ? AND O_C_ID = ? AND ROWNUM =1 ORDER BY O_ID DESC
++            </statement>
++        </procedure>
++    </dialect>
++    <dialect type="DB2">
++        <procedure name="Delivery">
++            <statement name="delivGetOrderIdSQL">
++                SELECT NO_O_ID
++                    FROM NEW_ORDER
++                    WHERE NO_D_ID = ? AND NO_W_ID = ? ORDER BY NO_O_ID ASC FETCH FIRST 1 ROWS ONLY
++            </statement>
++        </procedure>
++        <procedure name="OrderStatus">
++            <statement name="ordStatGetNewestOrdSQL">
++                SELECT O_ID, O_CARRIER_ID, O_ENTRY_D
++                        FROM OORDER
++                        WHERE O_W_ID = ? AND O_D_ID = ? AND O_C_ID = ? ORDER BY O_ID DESC FETCH FIRST 1 ROWS ONLY
++            </statement>
++        </procedure>
++    </dialect>
++    <dialect type="SQLSERVER">
++        <procedure name="Delivery">
++            <statement name="delivGetOrderIdSQL">
++                SELECT TOP 1 NO_O_ID
++                        FROM NEW_ORDER
++                        WHERE NO_D_ID = ? AND NO_W_ID = ? ORDER BY NO_O_ID ASC
++            </statement>
++        </procedure>
++        <procedure name="NewOrder">
++            <statement name="stmtGetDistSQL">
++                SELECT D_NEXT_O_ID,D_TAX
++                        FROM DISTRICT
++                        WHERE D_W_ID = ? AND D_ID = ?
++            </statement>
++            <statement name="stmtGetStockSQL">
++                SELECT S_QUANTITY, S_DATA, S_DIST_01, S_DIST_02, S_DIST_03, S_DIST_04, S_DIST_05,
++                    S_DIST_06, S_DIST_07, S_DIST_08, S_DIST_09, S_DIST_10
++                    FROM STOCK
++                    WHERE S_I_ID = ? AND S_W_ID = ?
++            </statement>
++        </procedure>
++        <procedure name="OrderStatus">
++            <statement name="ordStatGetNewestOrdSQL">
++                SELECT TOP 1 O_ID, O_CARRIER_ID, O_ENTRY_D
++                        FROM OORDER
++                        WHERE O_W_ID = ? AND O_D_ID = ? AND O_C_ID = ? ORDER BY O_ID DESC
++            </statement>
++        </procedure>
++    </dialect>
++</dialects>
+\ No newline at end of file
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-mysql-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-mysql-ddl.sql
+new file mode 100644
+index 0000000..ea065ed
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-mysql-ddl.sql
+@@ -0,0 +1,149 @@
++-- TODO: C_SINCE ON UPDATE CURRENT_TIMESTAMP,
++DROP TABLE IF EXISTS CUSTOMER;
++DROP TABLE IF EXISTS DISTRICT;
++DROP TABLE IF EXISTS HISTORY;
++DROP TABLE IF EXISTS ITEM;
++DROP TABLE IF EXISTS NEW_ORDER;
++DROP TABLE IF EXISTS OORDER;
++DROP TABLE IF EXISTS ORDER_LINE;
++DROP TABLE IF EXISTS STOCK;
++DROP TABLE IF EXISTS WAREHOUSE;
++
++CREATE TABLE CUSTOMER (
++  C_W_ID INT NOT NULL,
++  C_D_ID INT NOT NULL,
++  C_ID INT NOT NULL,
++  C_DISCOUNT DECIMAL(4,4) NOT NULL,
++  C_CREDIT CHAR(2) NOT NULL,
++  C_LAST VARCHAR(16) NOT NULL,
++  C_FIRST VARCHAR(16) NOT NULL,
++  C_CREDIT_LIM DECIMAL(12,2) NOT NULL,
++  C_BALANCE DECIMAL(12,2) NOT NULL,
++  C_YTD_PAYMENT FLOAT NOT NULL,
++  C_PAYMENT_CNT INT NOT NULL,
++  C_DELIVERY_CNT INT NOT NULL,
++  C_STREET_1 VARCHAR(20) NOT NULL,
++  C_STREET_2 VARCHAR(20) NOT NULL,
++  C_CITY VARCHAR(20) NOT NULL,
++  C_STATE CHAR(2) NOT NULL,
++  C_ZIP CHAR(9) NOT NULL,
++  C_PHONE CHAR(16) NOT NULL,
++  C_SINCE TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
++  C_MIDDLE CHAR(2) NOT NULL,
++  C_DATA VARCHAR(500) NOT NULL,
++  PRIMARY KEY (C_W_ID,C_D_ID,C_ID)
++);
++
++
++CREATE TABLE DISTRICT (
++  D_W_ID INT NOT NULL,
++  D_ID INT NOT NULL,
++  D_YTD DECIMAL(12,2) NOT NULL,
++  D_TAX DECIMAL(4,4) NOT NULL,
++  D_NEXT_O_ID INT NOT NULL,
++  D_NAME VARCHAR(10) NOT NULL,
++  D_STREET_1 VARCHAR(20) NOT NULL,
++  D_STREET_2 VARCHAR(20) NOT NULL,
++  D_CITY VARCHAR(20) NOT NULL,
++  D_STATE CHAR(2) NOT NULL,
++  D_ZIP CHAR(9) NOT NULL,
++  PRIMARY KEY (D_W_ID,D_ID)
++);
++
++-- TODO: H_DATE ON UPDATE CURRENT_TIMESTAMP
++
++CREATE TABLE HISTORY (
++  H_C_ID INT NOT NULL,
++  H_C_D_ID INT NOT NULL,
++  H_C_W_ID INT NOT NULL,
++  H_D_ID INT NOT NULL,
++  H_W_ID INT NOT NULL,
++  H_DATE TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
++  H_AMOUNT DECIMAL(6,2) NOT NULL,
++  H_DATA VARCHAR(24) NOT NULL
++);
++
++
++CREATE TABLE ITEM (
++  I_ID INT NOT NULL,
++  I_NAME VARCHAR(24) NOT NULL,
++  I_PRICE DECIMAL(5,2) NOT NULL,
++  I_DATA VARCHAR(50) NOT NULL,
++  I_IM_ID INT NOT NULL,
++  PRIMARY KEY (I_ID)
++);
++
++
++CREATE TABLE NEW_ORDER (
++  NO_W_ID INT NOT NULL,
++  NO_D_ID INT NOT NULL,
++  NO_O_ID INT NOT NULL,
++  PRIMARY KEY (NO_W_ID,NO_D_ID,NO_O_ID)
++);
++
++-- TODO: O_ENTRY_D  ON UPDATE CURRENT_TIMESTAMP
++
++CREATE TABLE OORDER (
++  O_W_ID INT NOT NULL,
++  O_D_ID INT NOT NULL,
++  O_ID INT NOT NULL,
++  O_C_ID INT NOT NULL,
++  O_CARRIER_ID INT DEFAULT NULL,
++  O_OL_CNT DECIMAL(2,0) NOT NULL,
++  O_ALL_LOCAL DECIMAL(1,0) NOT NULL,
++  O_ENTRY_D TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
++  PRIMARY KEY (O_W_ID,O_D_ID,O_ID),
++  UNIQUE (O_W_ID,O_D_ID,O_C_ID,O_ID)
++);
++
++
++CREATE TABLE ORDER_LINE (
++  OL_W_ID INT NOT NULL,
++  OL_D_ID INT NOT NULL,
++  OL_O_ID INT NOT NULL,
++  OL_NUMBER INT NOT NULL,
++  OL_I_ID INT NOT NULL,
++  OL_DELIVERY_D TIMESTAMP NULL DEFAULT NULL,
++  OL_AMOUNT DECIMAL(6,2) NOT NULL,
++  OL_SUPPLY_W_ID INT NOT NULL,
++  OL_QUANTITY DECIMAL(2,0) NOT NULL,
++  OL_DIST_INFO CHAR(24) NOT NULL,
++  PRIMARY KEY (OL_W_ID,OL_D_ID,OL_O_ID,OL_NUMBER)
++);
++
++CREATE TABLE STOCK (
++  S_W_ID INT NOT NULL,
++  S_I_ID INT NOT NULL,
++  S_QUANTITY DECIMAL(4,0) NOT NULL,
++  S_YTD DECIMAL(8,2) NOT NULL,
++  S_ORDER_CNT INT NOT NULL,
++  S_REMOTE_CNT INT NOT NULL,
++  S_DATA VARCHAR(50) NOT NULL,
++  S_DIST_01 CHAR(24) NOT NULL,
++  S_DIST_02 CHAR(24) NOT NULL,
++  S_DIST_03 CHAR(24) NOT NULL,
++  S_DIST_04 CHAR(24) NOT NULL,
++  S_DIST_05 CHAR(24) NOT NULL,
++  S_DIST_06 CHAR(24) NOT NULL,
++  S_DIST_07 CHAR(24) NOT NULL,
++  S_DIST_08 CHAR(24) NOT NULL,
++  S_DIST_09 CHAR(24) NOT NULL,
++  S_DIST_10 CHAR(24) NOT NULL,
++  PRIMARY KEY (S_W_ID,S_I_ID)
++);
++
++CREATE TABLE WAREHOUSE (
++  W_ID INT NOT NULL,
++  W_YTD DECIMAL(12,2) NOT NULL,
++  W_TAX DECIMAL(4,4) NOT NULL,
++  W_NAME VARCHAR(10) NOT NULL,
++  W_STREET_1 VARCHAR(20) NOT NULL,
++  W_STREET_2 VARCHAR(20) NOT NULL,
++  W_CITY VARCHAR(20) NOT NULL,
++  W_STATE CHAR(2) NOT NULL,
++  W_ZIP CHAR(9) NOT NULL,
++  PRIMARY KEY (W_ID)
++);
++
++-- INDEXES
++CREATE INDEX IDX_CUSTOMER_NAME ON CUSTOMER (C_W_ID,C_D_ID,C_LAST,C_FIRST);
+\ No newline at end of file
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql
+new file mode 100644
+index 0000000..dc12448
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-nuodb-ddl.sql
+@@ -0,0 +1,149 @@
++-- TODO: C_SINCE ON UPDATE CURRENT_TIMESTAMP,
++DROP TABLE IF EXISTS CUSTOMER;
++DROP TABLE IF EXISTS DISTRICT;
++DROP TABLE IF EXISTS HISTORY;
++DROP TABLE IF EXISTS ITEM;
++DROP TABLE IF EXISTS NEW_ORDER;
++DROP TABLE IF EXISTS OORDER;
++DROP TABLE IF EXISTS ORDER_LINE;
++DROP TABLE IF EXISTS STOCK;
++DROP TABLE IF EXISTS WAREHOUSE;
++
++CREATE TABLE CUSTOMER (
++  C_W_ID INT NOT NULL,
++  C_D_ID INT NOT NULL,
++  C_ID INT NOT NULL,
++  C_DISCOUNT DECIMAL(4,4) NOT NULL,
++  C_CREDIT STRING NOT NULL,
++  C_LAST STRING NOT NULL,
++  C_FIRST STRING NOT NULL,
++  C_CREDIT_LIM DECIMAL(12,2) NOT NULL,
++  C_BALANCE DECIMAL(12,2) NOT NULL,
++  C_YTD_PAYMENT FLOAT NOT NULL,
++  C_PAYMENT_CNT INT NOT NULL,
++  C_DELIVERY_CNT INT NOT NULL,
++  C_STREET_1 STRING NOT NULL,
++  C_STREET_2 STRING NOT NULL,
++  C_CITY STRING NOT NULL,
++  C_STATE STRING NOT NULL,
++  C_ZIP STRING NOT NULL,
++  C_PHONE STRING NOT NULL,
++  C_SINCE TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
++  C_MIDDLE STRING NOT NULL,
++  C_DATA STRING NOT NULL,
++  PRIMARY KEY (C_W_ID,C_D_ID,C_ID)
++);
++
++
++CREATE TABLE DISTRICT (
++  D_W_ID INT NOT NULL,
++  D_ID INT NOT NULL,
++  D_YTD DECIMAL(12,2) NOT NULL,
++  D_TAX DECIMAL(4,4) NOT NULL,
++  D_NEXT_O_ID INT NOT NULL,
++  D_NAME STRING NOT NULL,
++  D_STREET_1 STRING NOT NULL,
++  D_STREET_2 STRING NOT NULL,
++  D_CITY STRING NOT NULL,
++  D_STATE STRING NOT NULL,
++  D_ZIP STRING NOT NULL,
++  PRIMARY KEY (D_W_ID,D_ID)
++);
++
++-- TODO: H_DATE ON UPDATE CURRENT_TIMESTAMP
++
++CREATE TABLE HISTORY (
++  H_C_ID INT NOT NULL,
++  H_C_D_ID INT NOT NULL,
++  H_C_W_ID INT NOT NULL,
++  H_D_ID INT NOT NULL,
++  H_W_ID INT NOT NULL,
++  H_DATE TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
++  H_AMOUNT DECIMAL(6,2) NOT NULL,
++  H_DATA STRING NOT NULL
++);
++
++
++CREATE TABLE ITEM (
++  I_ID INT NOT NULL,
++  I_NAME VARCHAR(24) NOT NULL,
++  I_PRICE DECIMAL(5,2) NOT NULL,
++  I_DATA VARCHAR(50) NOT NULL,
++  I_IM_ID INT NOT NULL,
++  PRIMARY KEY (I_ID)
++);
++
++
++CREATE TABLE NEW_ORDER (
++  NO_W_ID INT NOT NULL,
++  NO_D_ID INT NOT NULL,
++  NO_O_ID INT NOT NULL,
++  PRIMARY KEY (NO_W_ID,NO_D_ID,NO_O_ID)
++);
++
++-- TODO: O_ENTRY_D  ON UPDATE CURRENT_TIMESTAMP
++
++CREATE TABLE OORDER (
++  O_W_ID INT NOT NULL,
++  O_D_ID INT NOT NULL,
++  O_ID INT NOT NULL,
++  O_C_ID INT NOT NULL,
++  O_CARRIER_ID INT DEFAULT NULL,
++  O_OL_CNT DECIMAL(2,0) NOT NULL,
++  O_ALL_LOCAL DECIMAL(1,0) NOT NULL,
++  O_ENTRY_D TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
++  PRIMARY KEY (O_W_ID,O_D_ID,O_ID),
++  UNIQUE (O_W_ID,O_D_ID,O_C_ID,O_ID)
++);
++
++
++CREATE TABLE ORDER_LINE (
++  OL_W_ID INT NOT NULL,
++  OL_D_ID INT NOT NULL,
++  OL_O_ID INT NOT NULL,
++  OL_NUMBER INT NOT NULL,
++  OL_I_ID INT NOT NULL,
++  OL_DELIVERY_D TIMESTAMP NULL DEFAULT NULL,
++  OL_AMOUNT DECIMAL(6,2) NOT NULL,
++  OL_SUPPLY_W_ID INT NOT NULL,
++  OL_QUANTITY DECIMAL(2,0) NOT NULL,
++  OL_DIST_INFO STRING NOT NULL,
++  PRIMARY KEY (OL_W_ID,OL_D_ID,OL_O_ID,OL_NUMBER)
++);
++
++CREATE TABLE STOCK (
++  S_W_ID INT NOT NULL,
++  S_I_ID INT NOT NULL,
++  S_QUANTITY DECIMAL(4,0) NOT NULL,
++  S_YTD DECIMAL(8,2) NOT NULL,
++  S_ORDER_CNT INT NOT NULL,
++  S_REMOTE_CNT INT NOT NULL,
++  S_DATA STRING NOT NULL,
++  S_DIST_01 STRING NOT NULL,
++  S_DIST_02 STRING NOT NULL,
++  S_DIST_03 STRING NOT NULL,
++  S_DIST_04 STRING NOT NULL,
++  S_DIST_05 STRING NOT NULL,
++  S_DIST_06 STRING NOT NULL,
++  S_DIST_07 STRING NOT NULL,
++  S_DIST_08 STRING NOT NULL,
++  S_DIST_09 STRING NOT NULL,
++  S_DIST_10 STRING NOT NULL,
++  PRIMARY KEY (S_W_ID,S_I_ID)
++);
++
++CREATE TABLE WAREHOUSE (
++  W_ID INT NOT NULL,
++  W_YTD DECIMAL(12,2) NOT NULL,
++  W_TAX DECIMAL(4,4) NOT NULL,
++  W_NAME STRING NOT NULL,
++  W_STREET_1 STRING NOT NULL,
++  W_STREET_2 STRING NOT NULL,
++  W_CITY STRING NOT NULL,
++  W_STATE STRING NOT NULL,
++  W_ZIP STRING NOT NULL,
++  PRIMARY KEY (W_ID)
++);
++
++-- INDEXES
++CREATE INDEX IDX_CUSTOMER_NAME ON CUSTOMER (C_W_ID,C_D_ID,C_LAST,C_FIRST);
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-oracle-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-oracle-ddl.sql
+new file mode 100644
+index 0000000..1741bee
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-oracle-ddl.sql
+@@ -0,0 +1,140 @@
++BEGIN EXECUTE IMMEDIATE 'DROP TABLE ORDER_LINE CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
++BEGIN EXECUTE IMMEDIATE 'DROP TABLE STOCK CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
++BEGIN EXECUTE IMMEDIATE 'DROP TABLE ITEM CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
++BEGIN EXECUTE IMMEDIATE 'DROP TABLE NEW_ORDER CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
++BEGIN EXECUTE IMMEDIATE 'DROP TABLE OORDER CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
++BEGIN EXECUTE IMMEDIATE 'DROP TABLE HISTORY CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
++BEGIN EXECUTE IMMEDIATE 'DROP TABLE CUSTOMER CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
++BEGIN EXECUTE IMMEDIATE 'DROP TABLE DISTRICT CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
++BEGIN EXECUTE IMMEDIATE 'DROP TABLE WAREHOUSE CASCADE CONSTRAINTS PURGE'; EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;;
++
++
++CREATE TABLE CUSTOMER (
++  C_W_ID NUMBER NOT NULL,
++  C_D_ID NUMBER NOT NULL,
++  C_ID NUMBER NOT NULL,
++  C_DISCOUNT NUMBER(4,4) NOT NULL,
++  C_CREDIT CHAR(2) NOT NULL,
++  C_LAST VARCHAR2(16) NOT NULL,
++  C_FIRST VARCHAR2(16) NOT NULL,
++  C_CREDIT_LIM NUMBER(12,2) NOT NULL,
++  C_BALANCE NUMBER(12,2) NOT NULL,
++  C_YTD_PAYMENT FLOAT NOT NULL,
++  C_PAYMENT_CNT NUMBER NOT NULL,
++  C_DELIVERY_CNT NUMBER NOT NULL,
++  C_STREET_1 VARCHAR2(20) NOT NULL,
++  C_STREET_2 VARCHAR2(20) NOT NULL,
++  C_CITY VARCHAR2(20) NOT NULL,
++  C_STATE CHAR(2) NOT NULL,
++  C_ZIP CHAR(9) NOT NULL,
++  C_PHONE CHAR(16) NOT NULL,
++  C_SINCE DATE NOT NULL,
++  C_MIDDLE CHAR(2) NOT NULL,
++  C_DATA VARCHAR2(500) NOT NULL,
++  PRIMARY KEY (C_W_ID,C_D_ID,C_ID)
++);
++CREATE INDEX IDX_CUSTOMER_NAME ON CUSTOMER (C_W_ID,C_D_ID,C_LAST,C_FIRST);
++
++CREATE TABLE DISTRICT (
++  D_W_ID NUMBER NOT NULL,
++  D_ID NUMBER NOT NULL,
++  D_YTD NUMBER(12,2) NOT NULL,
++  D_TAX NUMBER(4,4) NOT NULL,
++  D_NEXT_O_ID NUMBER NOT NULL,
++  D_NAME VARCHAR2(10) NOT NULL,
++  D_STREET_1 VARCHAR2(20) NOT NULL,
++  D_STREET_2 VARCHAR2(20) NOT NULL,
++  D_CITY VARCHAR2(20) NOT NULL,
++  D_STATE CHAR(2) NOT NULL,
++  D_ZIP CHAR(9) NOT NULL,
++  PRIMARY KEY (D_W_ID,D_ID)
++);
++
++CREATE TABLE HISTORY (
++  H_C_ID NUMBER NOT NULL,
++  H_C_D_ID NUMBER NOT NULL,
++  H_C_W_ID NUMBER NOT NULL,
++  H_D_ID NUMBER NOT NULL,
++  H_W_ID NUMBER NOT NULL,
++  H_DATE DATE NOT NULL,
++  H_AMOUNT NUMBER(6,2) NOT NULL,
++  H_DATA VARCHAR2(24) NOT NULL
++);
++
++CREATE TABLE ITEM (
++  I_ID NUMBER NOT NULL,
++  I_NAME VARCHAR2(24) NOT NULL,
++  I_PRICE NUMBER(5,2) NOT NULL,
++  I_DATA VARCHAR2(50) NOT NULL,
++  I_IM_ID NUMBER NOT NULL,
++  PRIMARY KEY (I_ID)
++);
++
++CREATE TABLE NEW_ORDER (
++  NO_W_ID NUMBER NOT NULL,
++  NO_D_ID NUMBER NOT NULL,
++  NO_O_ID NUMBER NOT NULL,
++  PRIMARY KEY (NO_W_ID,NO_D_ID,NO_O_ID)
++);
++
++CREATE TABLE OORDER (
++  O_W_ID NUMBER NOT NULL,
++  O_D_ID NUMBER NOT NULL,
++  O_ID NUMBER NOT NULL,
++  O_C_ID NUMBER NOT NULL,
++  O_CARRIER_ID NUMBER DEFAULT NULL,
++  O_OL_CNT NUMBER(2,0) NOT NULL,
++  O_ALL_LOCAL NUMBER(1,0) NOT NULL,
++  O_ENTRY_D DATE NOT NULL,
++  PRIMARY KEY (O_W_ID,O_D_ID,O_ID),
++  UNIQUE (O_W_ID,O_D_ID,O_C_ID,O_ID)
++);
++
++CREATE TABLE ORDER_LINE (
++  OL_W_ID NUMBER NOT NULL,
++  OL_D_ID NUMBER NOT NULL,
++  OL_O_ID NUMBER NOT NULL,
++  OL_NUMBER NUMBER NOT NULL,
++  OL_I_ID NUMBER NOT NULL,
++  OL_DELIVERY_D DATE,
++  OL_AMOUNT NUMBER(6,2) NOT NULL,
++  OL_SUPPLY_W_ID NUMBER NOT NULL,
++  OL_QUANTITY NUMBER(2,0) NOT NULL,
++  OL_DIST_INFO CHAR(24) NOT NULL,
++  PRIMARY KEY (OL_W_ID,OL_D_ID,OL_O_ID,OL_NUMBER)
++);
++
++CREATE TABLE STOCK (
++  S_W_ID NUMBER NOT NULL,
++  S_I_ID NUMBER NOT NULL,
++  S_QUANTITY NUMBER(4,0) NOT NULL,
++  S_YTD NUMBER(8,2) NOT NULL,
++  S_ORDER_CNT NUMBER NOT NULL,
++  S_REMOTE_CNT NUMBER NOT NULL,
++  S_DATA VARCHAR2(50) NOT NULL,
++  S_DIST_01 CHAR(24) NOT NULL,
++  S_DIST_02 CHAR(24) NOT NULL,
++  S_DIST_03 CHAR(24) NOT NULL,
++  S_DIST_04 CHAR(24) NOT NULL,
++  S_DIST_05 CHAR(24) NOT NULL,
++  S_DIST_06 CHAR(24) NOT NULL,
++  S_DIST_07 CHAR(24) NOT NULL,
++  S_DIST_08 CHAR(24) NOT NULL,
++  S_DIST_09 CHAR(24) NOT NULL,
++  S_DIST_10 CHAR(24) NOT NULL,
++  PRIMARY KEY (S_W_ID,S_I_ID)
++);
++
++CREATE TABLE WAREHOUSE (
++  W_ID NUMBER NOT NULL,
++  W_YTD NUMBER(12,2) NOT NULL,
++  W_TAX NUMBER(4,4) NOT NULL,
++  W_NAME VARCHAR2(10) NOT NULL,
++  W_STREET_1 VARCHAR2(20) NOT NULL,
++  W_STREET_2 VARCHAR2(20) NOT NULL,
++  W_CITY VARCHAR2(20) NOT NULL,
++  W_STATE CHAR(2) NOT NULL,
++  W_ZIP CHAR(9) NOT NULL,
++  PRIMARY KEY (W_ID)
++);
++
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-pg-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-pg-ddl.sql
+new file mode 100644
+index 0000000..09c567d
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-pg-ddl.sql
+@@ -0,0 +1,140 @@
++-- TODO: c_since ON UPDATE CURRENT_TIMESTAMP,
++DROP TABLE IF EXISTS customer;
++CREATE TABLE customer (
++  c_w_id int NOT NULL,
++  c_d_id int NOT NULL,
++  c_id int NOT NULL,
++  c_discount decimal(4,4) NOT NULL,
++  c_credit char(2) NOT NULL,
++  c_last varchar(16) NOT NULL,
++  c_first varchar(16) NOT NULL,
++  c_credit_lim decimal(12,2) NOT NULL,
++  c_balance decimal(12,2) NOT NULL,
++  c_ytd_payment float NOT NULL,
++  c_payment_cnt int NOT NULL,
++  c_delivery_cnt int NOT NULL,
++  c_street_1 varchar(20) NOT NULL,
++  c_street_2 varchar(20) NOT NULL,
++  c_city varchar(20) NOT NULL,
++  c_state char(2) NOT NULL,
++  c_zip char(9) NOT NULL,
++  c_phone char(16) NOT NULL,
++  c_since timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
++  c_middle char(2) NOT NULL,
++  c_data varchar(500) NOT NULL,
++  PRIMARY KEY (c_w_id,c_d_id,c_id)
++);
++CREATE INDEX IDX_CUSTOMER_NAME ON customer (c_w_id,c_d_id,c_last,c_first);
++
++DROP TABLE IF EXISTS district;
++CREATE TABLE district (
++  d_w_id int NOT NULL,
++  d_id int NOT NULL,
++  d_ytd decimal(12,2) NOT NULL,
++  d_tax decimal(4,4) NOT NULL,
++  d_next_o_id int NOT NULL,
++  d_name varchar(10) NOT NULL,
++  d_street_1 varchar(20) NOT NULL,
++  d_street_2 varchar(20) NOT NULL,
++  d_city varchar(20) NOT NULL,
++  d_state char(2) NOT NULL,
++  d_zip char(9) NOT NULL,
++  PRIMARY KEY (d_w_id,d_id)
++);
++
++-- TODO: h_date ON UPDATE CURRENT_TIMESTAMP
++DROP TABLE IF EXISTS history;
++CREATE TABLE history (
++  h_c_id int NOT NULL,
++  h_c_d_id int NOT NULL,
++  h_c_w_id int NOT NULL,
++  h_d_id int NOT NULL,
++  h_w_id int NOT NULL,
++  h_date timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
++  h_amount decimal(6,2) NOT NULL,
++  h_data varchar(24) NOT NULL
++);
++
++DROP TABLE IF EXISTS item;
++CREATE TABLE item (
++  i_id int NOT NULL,
++  i_name varchar(24) NOT NULL,
++  i_price decimal(5,2) NOT NULL,
++  i_data varchar(50) NOT NULL,
++  i_im_id int NOT NULL,
++  PRIMARY KEY (i_id)
++);
++
++DROP TABLE IF EXISTS new_order;
++CREATE TABLE new_order (
++  no_w_id int NOT NULL,
++  no_d_id int NOT NULL,
++  no_o_id int NOT NULL,
++  PRIMARY KEY (no_w_id,no_d_id,no_o_id)
++);
++
++-- TODO: o_entry_d  ON UPDATE CURRENT_TIMESTAMP
++DROP TABLE IF EXISTS oorder;
++CREATE TABLE oorder (
++  o_w_id int NOT NULL,
++  o_d_id int NOT NULL,
++  o_id int NOT NULL,
++  o_c_id int NOT NULL,
++  o_carrier_id int DEFAULT NULL,
++  o_ol_cnt decimal(2,0) NOT NULL,
++  o_all_local decimal(1,0) NOT NULL,
++  o_entry_d timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
++  PRIMARY KEY (o_w_id,o_d_id,o_id),
++  UNIQUE (o_w_id,o_d_id,o_c_id,o_id)
++);
++
++DROP TABLE IF EXISTS order_line;
++CREATE TABLE order_line (
++  ol_w_id int NOT NULL,
++  ol_d_id int NOT NULL,
++  ol_o_id int NOT NULL,
++  ol_number int NOT NULL,
++  ol_i_id int NOT NULL,
++  ol_delivery_d timestamp NULL DEFAULT NULL,
++  ol_amount decimal(6,2) NOT NULL,
++  ol_supply_w_id int NOT NULL,
++  ol_quantity decimal(2,0) NOT NULL,
++  ol_dist_info char(24) NOT NULL,
++  PRIMARY KEY (ol_w_id,ol_d_id,ol_o_id,ol_number)
++);
++
++DROP TABLE IF EXISTS stock;
++CREATE TABLE stock (
++  s_w_id int NOT NULL,
++  s_i_id int NOT NULL,
++  s_quantity decimal(4,0) NOT NULL,
++  s_ytd decimal(8,2) NOT NULL,
++  s_order_cnt int NOT NULL,
++  s_remote_cnt int NOT NULL,
++  s_data varchar(50) NOT NULL,
++  s_dist_01 char(24) NOT NULL,
++  s_dist_02 char(24) NOT NULL,
++  s_dist_03 char(24) NOT NULL,
++  s_dist_04 char(24) NOT NULL,
++  s_dist_05 char(24) NOT NULL,
++  s_dist_06 char(24) NOT NULL,
++  s_dist_07 char(24) NOT NULL,
++  s_dist_08 char(24) NOT NULL,
++  s_dist_09 char(24) NOT NULL,
++  s_dist_10 char(24) NOT NULL,
++  PRIMARY KEY (s_w_id,s_i_id)
++);
++
++DROP TABLE IF EXISTS warehouse;
++CREATE TABLE warehouse (
++  w_id int NOT NULL,
++  w_ytd decimal(12,2) NOT NULL,
++  w_tax decimal(4,4) NOT NULL,
++  w_name varchar(10) NOT NULL,
++  w_street_1 varchar(20) NOT NULL,
++  w_street_2 varchar(20) NOT NULL,
++  w_city varchar(20) NOT NULL,
++  w_state char(2) NOT NULL,
++  w_zip char(9) NOT NULL,
++  PRIMARY KEY (w_id)
++);
+\ No newline at end of file
+diff --git a/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql
+new file mode 100644
+index 0000000..9d156c0
+--- /dev/null
++++ b/src/com/oltpbenchmark/benchmarks/tpcc_plus/tpcc-sqlserver-ddl.sql
+@@ -0,0 +1,144 @@
++--  DROP EXISTING TABLES
++IF OBJECT_ID('WAREHOUSE') IS NOT NULL DROP TABLE WAREHOUSE;
++IF OBJECT_ID('STOCK') IS NOT NULL DROP TABLE STOCK;
++IF OBJECT_ID('ORDER_LINE') IS NOT NULL DROP TABLE ORDER_LINE;
++IF OBJECT_ID('OORDER') IS NOT NULL DROP TABLE OORDER;
++IF OBJECT_ID('NEW_ORDER') IS NOT NULL DROP TABLE NEW_ORDER;
++IF OBJECT_ID('ITEM') IS NOT NULL DROP TABLE ITEM;
++IF OBJECT_ID('HISTORY') IS NOT NULL DROP TABLE HISTORY;
++IF OBJECT_ID('DISTRICT') IS NOT NULL DROP TABLE DISTRICT;
++IF OBJECT_ID('CUSTOMER') IS NOT NULL DROP TABLE CUSTOMER;
++
++-- CREATE TABLES
++
++CREATE TABLE [DBO].[WAREHOUSE](
++	[W_ID] [INT] NOT NULL,
++	[W_YTD] [DECIMAL](12, 2) NOT NULL,
++	[W_TAX] [DECIMAL](4, 4) NOT NULL,
++	[W_NAME] [VARCHAR](10) NOT NULL,
++	[W_STREET_1] [VARCHAR](20) NOT NULL,
++	[W_STREET_2] [VARCHAR](20) NOT NULL,
++	[W_CITY] [VARCHAR](20) NOT NULL,
++	[W_STATE] [CHAR](2) NOT NULL,
++	[W_ZIP] [CHAR](9) NOT NULL,
++	PRIMARY KEY (W_ID)
++);
++
++CREATE TABLE [DBO].[STOCK](
++	[S_W_ID] [INT] NOT NULL,
++	[S_I_ID] [INT] NOT NULL,
++	[S_QUANTITY] [DECIMAL](4, 0) NOT NULL,
++	[S_YTD] [DECIMAL](8, 2) NOT NULL,
++	[S_ORDER_CNT] [INT] NOT NULL,
++	[S_REMOTE_CNT] [INT] NOT NULL,
++	[S_DATA] [VARCHAR](50) NOT NULL,
++	[S_DIST_01] [CHAR](24) NOT NULL,
++	[S_DIST_02] [CHAR](24) NOT NULL,
++	[S_DIST_03] [CHAR](24) NOT NULL,
++	[S_DIST_04] [CHAR](24) NOT NULL,
++	[S_DIST_05] [CHAR](24) NOT NULL,
++	[S_DIST_06] [CHAR](24) NOT NULL,
++	[S_DIST_07] [CHAR](24) NOT NULL,
++	[S_DIST_08] [CHAR](24) NOT NULL,
++	[S_DIST_09] [CHAR](24) NOT NULL,
++	[S_DIST_10] [CHAR](24) NOT NULL,
++	PRIMARY KEY (S_W_ID,S_I_ID)
++);
++
++CREATE TABLE [DBO].[ORDER_LINE](
++	[OL_W_ID] [INT] NOT NULL,
++	[OL_D_ID] [INT] NOT NULL,
++	[OL_O_ID] [INT] NOT NULL,
++	[OL_NUMBER] [INT] NOT NULL,
++	[OL_I_ID] [INT] NOT NULL,
++	[OL_DELIVERY_D] [SMALLDATETIME] NULL,
++	[OL_AMOUNT] [DECIMAL](6, 2) NOT NULL,
++	[OL_SUPPLY_W_ID] [INT] NOT NULL,
++	[OL_QUANTITY] [DECIMAL](2, 0) NOT NULL,
++	[OL_DIST_INFO] [CHAR](24) NOT NULL,
++	PRIMARY KEY (OL_W_ID,OL_D_ID,OL_O_ID,OL_NUMBER)
++); 
++
++CREATE TABLE [DBO].[OORDER](
++	[O_W_ID] [INT] NOT NULL,
++	[O_D_ID] [INT] NOT NULL,
++	[O_ID] [INT] NOT NULL,
++	[O_C_ID] [INT] NOT NULL,
++	[O_CARRIER_ID] [INT] NULL,
++	[O_OL_CNT] [DECIMAL](2, 0) NOT NULL,
++	[O_ALL_LOCAL] [DECIMAL](1, 0) NOT NULL,
++	[O_ENTRY_D] [SMALLDATETIME] NULL,
++	PRIMARY KEY (O_W_ID,O_D_ID,O_ID),
++    UNIQUE (O_W_ID,O_D_ID,O_C_ID,O_ID)
++);
++
++CREATE TABLE [DBO].[NEW_ORDER](
++	[NO_W_ID] [INT] NOT NULL,
++	[NO_D_ID] [INT] NOT NULL,
++	[NO_O_ID] [INT] NOT NULL,
++	PRIMARY KEY (NO_W_ID,NO_D_ID,NO_O_ID)
++);
++
++CREATE TABLE [DBO].[ITEM](
++	[I_ID] [INT] NOT NULL,
++	[I_NAME] [VARCHAR](24) NOT NULL,
++	[I_PRICE] [DECIMAL](5, 2) NOT NULL,
++	[I_DATA] [VARCHAR](50) NOT NULL,
++	[I_IM_ID] [INT] NOT NULL,
++	PRIMARY KEY (I_ID)
++);
++
++CREATE TABLE [DBO].[HISTORY](
++	[H_C_ID] [INT] NOT NULL,
++	[H_C_D_ID] [INT] NOT NULL,
++	[H_C_W_ID] [INT] NOT NULL,
++	[H_D_ID] [INT] NOT NULL,
++	[H_W_ID] [INT] NOT NULL,
++	[H_DATE] [SMALLDATETIME] NULL,
++	[H_AMOUNT] [DECIMAL](6, 2) NOT NULL,
++	[H_DATA] [VARCHAR](24) NOT NULL
++);
++
++CREATE TABLE [DBO].[DISTRICT](
++	[D_W_ID] [INT] NOT NULL,
++	[D_ID] [INT] NOT NULL,
++	[D_YTD] [DECIMAL](12, 2) NOT NULL,
++	[D_TAX] [DECIMAL](4, 4) NOT NULL,
++	[D_NEXT_O_ID] [INT] NOT NULL,
++	[D_NAME] [VARCHAR](10) NOT NULL,
++	[D_STREET_1] [VARCHAR](20) NOT NULL,
++	[D_STREET_2] [VARCHAR](20) NOT NULL,
++	[D_CITY] [VARCHAR](20) NOT NULL,
++	[D_STATE] [CHAR](2) NOT NULL,
++	[D_ZIP] [CHAR](9) NOT NULL,
++	PRIMARY KEY (D_W_ID,D_ID)
++);
++
++
++CREATE TABLE [DBO].[CUSTOMER](
++	[C_W_ID] [INT] NOT NULL,
++	[C_D_ID] [INT] NOT NULL,
++	[C_ID] [INT] NOT NULL,
++	[C_DISCOUNT] [DECIMAL](4, 4) NOT NULL,
++	[C_CREDIT] [CHAR](2) NOT NULL,
++	[C_LAST] [VARCHAR](16) NOT NULL,
++	[C_FIRST] [VARCHAR](16) NOT NULL,
++	[C_CREDIT_LIM] [DECIMAL](12, 2) NOT NULL,
++	[C_BALANCE] [DECIMAL](12, 2) NOT NULL,
++	[C_YTD_PAYMENT] [REAL] NOT NULL,
++	[C_PAYMENT_CNT] [INT] NOT NULL,
++	[C_DELIVERY_CNT] [INT] NOT NULL,
++	[C_STREET_1] [VARCHAR](20) NOT NULL,
++	[C_STREET_2] [VARCHAR](20) NOT NULL,
++	[C_CITY] [VARCHAR](20) NOT NULL,
++	[C_STATE] [CHAR](2) NOT NULL,
++	[C_ZIP] [CHAR](9) NOT NULL,
++	[C_PHONE] [CHAR](16) NOT NULL,
++	[C_SINCE] [SMALLDATETIME] NULL,
++	[C_MIDDLE] [CHAR](2) NOT NULL,
++	[C_DATA] [VARCHAR](500) NOT NULL,
++	PRIMARY KEY (C_W_ID,C_D_ID,C_ID)
++);
++
++-- CREATE INDEXES
++CREATE INDEX IDX_CUSTOMER_NAME ON [DBO].[CUSTOMER] (C_W_ID,C_D_ID,C_LAST,C_FIRST);
+\ No newline at end of file
+-- 
+1.7.9.5
+
